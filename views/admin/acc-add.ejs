@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thêm Acc Mới – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>➕ Thêm Acc Mới</h1>
+      <a href="/admin/acc" class="btn btn-outline btn-sm">← Danh Sách Acc</a>
+    </div>
+    <div class="admin-content">
+
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:22px;">
+
+        <%# FORM THÊM ACC %>
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>🎮 Thông Tin Acc</h3>
+          </div>
+          <div class="admin-card-body">
+            <form method="POST" action="/admin/acc/them" enctype="multipart/form-data" class="admin-form">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Game *</label>
+                  <select name="game_slug" required>
+                    <option value="">-- Chọn game --</option>
+                    <% games.forEach(g => { %>
+                    <option value="<%= g.slug %>"><%= g.name %></option>
+                    <% }) %>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Loại Acc *</label>
+                  <select name="acc_type">
+                    <option value="tu-chon">Tự Chọn</option>
+                    <option value="random">Random / Túi Mù</option>
+                    <option value="vip">VIP Cao Cấp</option>
+                    <option value="reg">REG Mới</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Username Acc *</label>
+                  <input type="text" name="acc_username" placeholder="Tên đăng nhập game" required>
+                </div>
+                <div class="form-group">
+                  <label>Password Acc *</label>
+                  <input type="text" name="acc_password" placeholder="Mật khẩu game" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Giá Bán (đ) *</label>
+                  <input type="number" name="price" placeholder="50000" min="1000" required>
+                </div>
+                <div class="form-group">
+                  <label>Rank / Hạng</label>
+                  <input type="text" name="rank_name" placeholder="VIP, Kim Bài, Đồng...">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Server</label>
+                  <input type="text" name="server" placeholder="Server 1, Server Mới...">
+                </div>
+                <div class="form-group">
+                  <label>Danh Mục (sub)</label>
+                  <input type="text" name="category" placeholder="20k, 50k, vip, tui-mu...">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Tiêu Đề Hiển Thị</label>
+                <input type="text" name="title" placeholder="VD: Acc VIP Kim Cương – Server 1 – Max Nội Lực">
+              </div>
+
+              <div class="form-group">
+                <label>Thông Tin Thêm (hiển thị sau khi mua)</label>
+                <textarea name="acc_info" placeholder="Email liên kết: abc@gmail.com&#10;SĐT: 09xxxxxxxx&#10;Thông tin khác..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Ảnh Acc (tùy chọn)</label>
+                <input type="file" name="image" accept="image/*" onchange="previewImg(this)">
+                <img id="imgPreview" style="max-width:200px;border-radius:10px;margin-top:10px;display:none;">
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;font-size:15px;">
+                ➕ Thêm Acc Vào Kho
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <%# HƯỚNG DẪN %>
+        <div>
+          <div class="admin-card" style="margin-bottom:16px;">
+            <div class="admin-card-header"><h3>📖 Hướng Dẫn</h3></div>
+            <div class="admin-card-body" style="font-size:13px;line-height:1.7;color:var(--text-muted);">
+              <p>• <strong>Username/Password:</strong> Thông tin đăng nhập vào game, sẽ được giao ngay sau khi mua.</p>
+              <p style="margin-top:8px;">• <strong>Thông tin thêm:</strong> Email, SĐT... chỉ buyer thấy sau khi mua.</p>
+              <p style="margin-top:8px;">• <strong>Giá:</strong> Nhập giá số nguyên (VD: 50000 = 50.000đ).</p>
+              <p style="margin-top:8px;">• <strong>Danh mục:</strong> Dùng để lọc acc theo nhóm (20k, 50k, vip...)</p>
+              <p style="margin-top:8px;">• Muốn thêm nhiều acc một lúc → dùng nút <strong>"Thêm Bulk"</strong>.</p>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-card-header"><h3>⚡ Thêm Nhanh Bằng Text</h3></div>
+            <div class="admin-card-body">
+              <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">Format: <code style="background:var(--bg);padding:2px 8px;border-radius:6px;font-size:12px;">user|pass|info</code></p>
+              <select id="qGame" class="admin-form" style="width:100%;margin-bottom:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;">
+                <option value="">-- Game --</option>
+                <% games.forEach(g => { %><option value="<%= g.slug %>"><%= g.name %></option><% }) %>
+              </select>
+              <input type="number" id="qPrice" placeholder="Giá (đ)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:13px;outline:none;">
+              <textarea id="qData" rows="5" placeholder="user1|pass1|info1&#10;user2|pass2&#10;..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:12.5px;outline:none;resize:vertical;font-family:monospace;"></textarea>
+              <div id="qMsg" style="font-size:12.5px;margin:8px 0;display:none;"></div>
+              <button class="btn btn-success" onclick="quickAdd()" style="width:100%;margin-top:8px;">📤 Thêm Nhanh</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewImg(input) {
+  const preview = document.getElementById('imgPreview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function quickAdd() {
+  const game  = document.getElementById('qGame').value;
+  const price = document.getElementById('qPrice').value;
+  const data  = document.getElementById('qData').value;
+  const msg   = document.getElementById('qMsg');
+
+  if (!game || !price || !data.trim()) {
+    msg.style.display='block'; msg.style.color='var(--primary)'; msg.textContent='⚠️ Điền đầy đủ!'; return;
+  }
+
+  const fd = new FormData();
+  fd.append('game_slug', game); fd.append('price', price); fd.append('bulk_data', data);
+
+  const r = await fetch('/admin/acc/bulk', { method: 'POST', body: fd });
+  const d = await r.json();
+  msg.style.display='block';
+  if (d.success) {
+    msg.style.color='#00c853'; msg.textContent = d.message;
+    document.getElementById('qData').value = '';
+    setTimeout(() => location.href='/admin/acc', 1500);
+  } else {
+    msg.style.color='var(--primary)'; msg.textContent = '❌ ' + d.message;
+  }
+}
+</script>
+</body>
+</html>

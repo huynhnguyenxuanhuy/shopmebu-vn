@@ -1,0 +1,287 @@
+<%# ===== TRANG TÀI KHOẢN ===== %>
+<div class="account-page">
+  <div class="container">
+
+    <nav class="breadcrumb">
+      <a href="/"><i class="fas fa-home"></i> Trang Chủ</a>
+      <i class="fas fa-chevron-right"></i>
+      <span>Tài Khoản</span>
+    </nav>
+
+    <%# FLASH %>
+    <% if (success_msg && success_msg.length > 0) { %>
+      <div class="flash flash-success"><i class="fas fa-check-circle"></i> <%= success_msg[0] %></div>
+    <% } %>
+
+    <%# USER INFO %>
+    <div class="user-header">
+      <div class="user-avatar-wrap">
+        <% if (user.avatar) { %>
+          <img src="<%= user.avatar %>" alt="Avatar" class="user-avatar">
+        <% } else { %>
+          <div class="user-avatar-default"><%= user.username.charAt(0).toUpperCase() %></div>
+        <% } %>
+      </div>
+      <div class="user-meta">
+        <h1 class="user-name"><%= user.username %></h1>
+        <span class="user-role role-<%= user.role %>"><%= user.role %></span>
+        <p class="user-email"><i class="fas fa-envelope"></i> <%= user.email %></p>
+      </div>
+      <div class="user-balance-big">
+        <span class="ub-label">Số dư</span>
+        <span class="ub-value"><%= Number(user.balance).toLocaleString('vi-VN') %>đ</span>
+        <a href="/nap-tien" class="btn-naptien"><i class="fas fa-plus"></i> Nạp Tiền</a>
+      </div>
+    </div>
+
+    <%# TABS %>
+    <div class="account-tabs">
+      <button class="tab-btn active" onclick="showTab('orders')"><i class="fas fa-shopping-bag"></i> Lịch Sử Mua</button>
+      <button class="tab-btn" onclick="showTab('transactions')"><i class="fas fa-exchange-alt"></i> Giao Dịch</button>
+    </div>
+
+    <%# TAB: ORDERS %>
+    <div class="tab-content active" id="tab-orders">
+      <% if (orders && orders.length > 0) { %>
+      <div class="orders-list">
+        <% orders.forEach(o => { %>
+        <div class="order-card">
+          <div class="order-game"><%= o.game_icon %> <%= o.game_name %></div>
+          <div class="order-main">
+            <div class="order-rank"><i class="fas fa-trophy"></i> <%= o.rank || 'N/A' %></div>
+            <div class="order-specs">
+              <% if (o.so_tuong > 0) { %><span><i class="fas fa-user-ninja"></i> <%= o.so_tuong %> tướng</span><% } %>
+              <% if (o.trang_phuc > 0) { %><span><i class="fas fa-tshirt"></i> <%= o.trang_phuc %> phục</span><% } %>
+            </div>
+          </div>
+          <div class="order-right">
+            <div class="order-price"><%= Number(o.amount).toLocaleString('vi-VN') %>đ</div>
+            <div class="order-date"><i class="far fa-clock"></i> <%= new Date(o.created_at).toLocaleString('vi-VN') %></div>
+            <button class="btn-view-acc" onclick="toggleAcc(this, '<%= o.acc_username %>', '<%= o.acc_password %>', `<%= o.acc_info || '' %>`)">
+              <i class="fas fa-eye"></i> Xem Thông Tin Acc
+            </button>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% } else { %>
+      <div class="empty-state">
+        <i class="fas fa-shopping-bag"></i>
+        <p>Bạn chưa mua acc nào</p>
+        <a href="/" class="btn-filter">Mua Acc Ngay</a>
+      </div>
+      <% } %>
+    </div>
+
+    <%# TAB: TRANSACTIONS %>
+    <div class="tab-content" id="tab-transactions">
+      <% if (transactions && transactions.length > 0) { %>
+      <div class="tx-table-wrap">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Thời Gian</th>
+              <th>Loại</th>
+              <th>Số Tiền</th>
+              <th>Số Dư Sau</th>
+              <th>Ghi Chú</th>
+              <th>Trạng Thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% transactions.forEach(tx => { %>
+            <tr>
+              <td><%= new Date(tx.created_at).toLocaleString('vi-VN') %></td>
+              <td>
+                <span class="type-badge type-<%= tx.type %>">
+                  <% if (tx.type === 'deposit') { %>⬆️ Nạp tiền
+                  <% } else if (tx.type === 'purchase') { %>⬇️ Mua acc
+                  <% } else { %>🔄 Hoàn tiền<% } %>
+                </span>
+              </td>
+              <td class="<%= tx.type === 'deposit' || tx.type === 'refund' ? 'tx-plus' : 'tx-minus' %>">
+                <%= tx.type === 'deposit' || tx.type === 'refund' ? '+' : '-' %><%= Number(tx.amount).toLocaleString('vi-VN') %>đ
+              </td>
+              <td><%= Number(tx.balance_after).toLocaleString('vi-VN') %>đ</td>
+              <td class="tx-note"><%= tx.note || tx.transfer_content || '—' %></td>
+              <td>
+                <span class="status-badge <%= tx.status %>">
+                  <%= tx.status === 'success' ? '✅ Thành công' : tx.status === 'pending' ? '⏳ Đang xử lý' : '❌ Thất bại' %>
+                </span>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>Chưa có giao dịch nào</p>
+      </div>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<%# ACC INFO MODAL %>
+<div class="modal-overlay" id="accModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fas fa-key"></i> Thông Tin Acc</h3>
+      <button onclick="document.getElementById('accModal').style.display='none'" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="accModalBody"></div>
+  </div>
+</div>
+
+<style>
+.account-page { padding: 20px 0 60px; }
+.user-header {
+  display: flex; align-items: center; gap: 24px;
+  background: var(--card-bg);
+  border-radius: 14px; padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255,255,255,0.07);
+  flex-wrap: wrap;
+}
+.user-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); }
+.user-avatar-default {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 700;
+}
+.user-meta { flex: 1; }
+.user-name { font-size: 1.5rem; color: #fff; margin-bottom: 6px; }
+.user-role {
+  padding: 2px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase;
+}
+.role-customer { background: rgba(108,99,255,0.2); color: var(--primary); }
+.role-admin    { background: rgba(231,76,60,0.2); color: #e74c3c; }
+.role-staff    { background: rgba(243,156,18,0.2); color: var(--accent); }
+.user-email { color: #888; font-size: 0.85rem; margin-top: 6px; }
+.user-balance-big { text-align: center; }
+.ub-label { display: block; color: #888; font-size: 0.8rem; margin-bottom: 4px; }
+.ub-value { display: block; font-size: 1.8rem; font-weight: 900; color: var(--accent); margin-bottom: 10px; }
+.btn-naptien {
+  display: inline-block; background: var(--primary);
+  color: #fff; text-decoration: none;
+  padding: 7px 20px; border-radius: 8px; font-size: 0.9rem;
+}
+
+.account-tabs {
+  display: flex; gap: 4px; margin-bottom: 20px;
+  background: var(--card-bg); padding: 4px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  width: fit-content;
+}
+.account-tabs .tab-btn {
+  background: none; border: none; color: #888;
+  padding: 8px 20px; border-radius: 8px; cursor: pointer;
+  font-size: 0.9rem; transition: all 0.2s;
+}
+.account-tabs .tab-btn.active { background: var(--primary); color: #fff; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.orders-list { display: flex; flex-direction: column; gap: 12px; }
+.order-card {
+  background: var(--card-bg); border-radius: 10px;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
+}
+.order-game { color: #888; font-size: 0.8rem; width: 120px; flex-shrink: 0; }
+.order-main { flex: 1; }
+.order-rank { color: #fff; font-weight: 700; margin-bottom: 4px; }
+.order-specs { display: flex; gap: 10px; }
+.order-specs span { color: #aaa; font-size: 0.8rem; }
+.order-right { text-align: right; }
+.order-price { color: var(--accent); font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+.order-date { color: #666; font-size: 0.78rem; margin-bottom: 8px; }
+.btn-view-acc {
+  background: rgba(108,99,255,0.15); color: var(--primary);
+  border: 1px solid var(--primary); padding: 5px 12px;
+  border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+}
+.btn-view-acc:hover { background: var(--primary); color: #fff; }
+
+.tx-table-wrap { overflow-x: auto; }
+.tx-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.tx-table th {
+  background: rgba(108,99,255,0.2); color: #ccc;
+  padding: 10px 12px; text-align: left; white-space: nowrap;
+}
+.tx-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ddd; }
+.tx-table tr:hover td { background: rgba(255,255,255,0.02); }
+.tx-plus { color: #2ecc71; font-weight: 700; }
+.tx-minus { color: #e74c3c; font-weight: 700; }
+.tx-note { color: #777; font-size: 0.78rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.type-badge, .status-badge { font-size: 0.78rem; white-space: nowrap; }
+
+.empty-state { text-align: center; padding: 50px; color: #555; }
+.empty-state i { font-size: 3rem; margin-bottom: 14px; display: block; }
+.btn-filter {
+  display: inline-block; background: var(--primary); color: #fff;
+  text-decoration: none; padding: 8px 20px; border-radius: 8px;
+  font-size: 0.9rem; margin-top: 12px;
+}
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.modal-box {
+  background: var(--card-bg); border-radius: 12px;
+  border: 1px solid var(--primary); width: 90%; max-width: 420px; overflow: hidden;
+}
+.modal-header { background: var(--primary); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { margin: 0; color: #fff; font-size: 1rem; }
+.modal-close { background: none; border: none; color: #fff; cursor: pointer; font-size: 1.2rem; }
+.modal-body { padding: 24px; }
+.cred-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.05); padding: 10px 14px;
+  border-radius: 8px; margin-bottom: 10px;
+}
+.cred-row label { color: #aaa; font-size: 0.8rem; width: 100px; flex-shrink: 0; }
+.cred-row span { color: var(--accent); font-family: monospace; font-weight: 700; flex: 1; font-size: 0.95rem; word-break: break-all; }
+.btn-copy-sm {
+  background: rgba(108,99,255,0.2); color: var(--primary);
+  border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+}
+</style>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.account-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleAcc(btn, user, pass, info) {
+  document.getElementById('accModal').style.display = 'flex';
+  document.getElementById('accModalBody').innerHTML = `
+    <div class="cred-row">
+      <label>Tên đăng nhập:</label>
+      <span>${user}</span>
+      <button onclick="navigator.clipboard.writeText('${user}')" class="btn-copy-sm"><i class="fas fa-copy"></i></button>
+    </div>
+    <div class="cred-row">
+      <label>Mật khẩu:</label>
+      <span>${pass}</span>
+      <button onclick="navigator.clipboard.writeText('${pass}')" class="btn-copy-sm"><i class="fas fa-copy"></i></button>
+    </div>
+    ${info ? `<div class="cred-row"><label>Thông tin:</label><span style="color:#ccc;font-size:0.82rem">${info}</span></div>` : ''}
+    <p style="color:#888;font-size:0.78rem;margin-top:10px"><i class="fas fa-shield-alt"></i> Đổi mật khẩu ngay sau khi nhận acc!</p>
+  `;
+}
+document.getElementById('accModal')?.addEventListener('click', e => {
+  if (e.target.id === 'accModal') e.target.style.display = 'none';
+});
+</script>

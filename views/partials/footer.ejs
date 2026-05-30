@@ -1,0 +1,110 @@
+<%/* =============================================
+   PARTIAL: footer.ejs
+   ============================================= */%>
+
+<footer class="site-footer">
+  <%
+    const footerStats = {
+      sold: Number((typeof stats !== 'undefined' && stats && stats.sold) || 0),
+      members: Number((typeof stats !== 'undefined' && stats && stats.members) || 0),
+      online: Number((typeof stats !== 'undefined' && stats && stats.online) || 0),
+      views: Number((typeof stats !== 'undefined' && stats && stats.views) || 0)
+    };
+  %>
+  <div class="footer-top">
+
+    <!-- BRAND -->
+    <div class="footer-brand">
+      <div class="site-logo">
+        <span class="logo-text">🏪 SHOPMEBU.VN</span>
+        <span class="logo-sub">Mua Bán Acc Game VPlay – Uy Tín – Tự Động 24/7</span>
+      </div>
+      <p class="footer-desc">
+        Shop acc VPlay uy tín, chuyên cung cấp tài khoản game
+        <strong>Huyền Ảnh Võ Lâm</strong> và <strong>Giang Hồ Kỳ Ngộ</strong>
+        chất lượng cao. Giao dịch tự động 24/7, nhận acc sau 5 giây.
+      </p>
+      <div class="footer-hotline">
+        📞 Hotline: <span class="number">0901.577.578</span>
+      </div>
+      <div class="footer-socials">
+        <a href="#" class="social-btn" title="Facebook">📘</a>
+        <a href="#" class="social-btn" title="Zalo">💬</a>
+        <a href="#" class="social-btn" title="YouTube">▶️</a>
+        <a href="#" class="social-btn" title="TikTok">🎵</a>
+      </div>
+    </div>
+
+    <!-- SẢN PHẨM -->
+    <div class="footer-col">
+      <h4>🎮 Sản Phẩm</h4>
+      <ul class="footer-links">
+        <li><a href="/game/huyen-anh-vo-lam/tu-chon">Acc Huyền Ảnh Võ Lâm Tự Chọn</a></li>
+        <li><a href="/game/huyen-anh-vo-lam/vip">Acc Huyền Ảnh VIP</a></li>
+        <li><a href="/game/huyen-anh-vo-lam/tui-mu">Túi Mù Huyền Ảnh</a></li>
+        <li><a href="/game/giang-ho-ky-ngo/tu-chon">Acc Giang Hồ Kỳ Ngộ Tự Chọn</a></li>
+        <li><a href="/game/giang-ho-ky-ngo/server-moi">Acc Giang Hồ Server Mới</a></li>
+        <li><a href="/game/vplay-khac/tu-chon">Acc Game VPlay Khác</a></li>
+      </ul>
+    </div>
+
+    <!-- THÔNG TIN CHUNG -->
+    <div class="footer-col">
+      <h4>ℹ️ Thông Tin</h4>
+      <ul class="footer-links">
+        <li><a href="/thong-tin-shop">Thông Tin Chủ Shop</a></li>
+        <li><a href="/nap-tien">Nạp Tiền (ATM / Momo)</a></li>
+        <li><a href="/box-sale">Box Zalo Săn Sale</a></li>
+        <li><a href="/dang-ky">Đăng Ký Tài Khoản</a></li>
+        <li><a href="/dang-nhap">Đăng Nhập</a></li>
+      </ul>
+    </div>
+
+    <!-- THỐNG KÊ -->
+    <div class="footer-col">
+      <h4>📊 Thống Kê</h4>
+      <div class="footer-stats">
+        <div class="stat-item">
+          <span class="stat-icon">🛒</span>
+          <div>
+            <div class="stat-label">Acc đã bán</div>
+            <div class="stat-value" id="footer-sold"><%= footerStats.sold.toLocaleString('vi-VN') %></div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">👥</span>
+          <div>
+            <div class="stat-label">Thành viên</div>
+            <div class="stat-value"><%= footerStats.members.toLocaleString('vi-VN') %></div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🟢</span>
+          <div>
+            <div class="stat-label">Đang online</div>
+            <div class="stat-value" id="footer-online"><%= footerStats.online %></div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">👁️</span>
+          <div>
+            <div class="stat-label">Lượt truy cập</div>
+            <div class="stat-value"><%= footerStats.views.toLocaleString('vi-VN') %></div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-work">⚡ GIAO DỊCH TỰ ĐỘNG 24/24</div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER BOTTOM -->
+  <div style="border-top:1px solid var(--border);padding:14px 16px;max-width:1320px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <p style="font-size:12px;color:var(--text-muted);">
+      © <%= new Date().getFullYear() %> SHOPMEBU.VN – Mua Bán Acc Game VPlay Uy Tín Tự Động 24/7
+    </p>
+    <span style="font-size:12px;color:var(--text-muted);">
+      📍 Địa chỉ: [Tỉnh/Thành phố của bạn]
+    </span>
+  </div>
+</footer>

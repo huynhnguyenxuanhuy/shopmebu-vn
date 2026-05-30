@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="Fire warrior account">
+  <defs><linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#090000"/><stop offset=".5" stop-color="#8b0000"/><stop offset="1" stop-color="#f08a00"/></linearGradient></defs>
+  <rect width="600" height="360" fill="url(#b)"/>
+  <path d="M78 306c38-120 74-136 62-228 78 74 108 138 74 228zM270 306c-28-94 12-156 98-238-16 118 76 138 70 238z" fill="#ffd15a" opacity=".22"/>
+  <g transform="translate(218 58)">
+    <circle cx="82" cy="58" r="24" fill="#ffd15a"/>
+    <path d="M44 242c-16-68-8-126 18-174h42c34 52 46 110 34 174z" fill="#170202"/>
+    <path d="M0 248L186 30l16 14L16 262z" fill="#ffe08a"/>
+    <path d="M18 34l176 206-16 14L2 48z" fill="#ffe08a"/>
+    <path d="M62 100h44l34 142H30z" fill="#e61515"/>
+  </g>
+  <text x="30" y="54" fill="#fff0a6" font-size="29" font-family="Arial Black, Arial">CHIEN LUC</text>
+  <text x="30" y="84" fill="#fff" fill-opacity=".78" font-size="18" font-family="Arial">Max sat thuong</text>
+</svg>

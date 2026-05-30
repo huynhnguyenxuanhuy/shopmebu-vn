@@ -1,0 +1,121 @@
+<%# ===== TRANG TÌM KIẾM ===== %>
+<%
+  const searchFallbackThumbs = [
+    'https://play-lh.googleusercontent.com/556FIxsnMJWgLOOSTgAbL1ceIynb3xQv6vjL_7hBTOpaiZaX1yxk21YEefZo4q7K=w1052-h592',
+    'https://play-lh.googleusercontent.com/e1r-JdALc5NcU_YwYHAyLzfSk3OsX6JC9yYb_D7KVOnJs04ML0lhUuob0GE1ze_4IJM=w1052-h592',
+    'https://play-lh.googleusercontent.com/EkeG-CnfqSe8Nq50orgfa1qFBpUDtI4ya8Z1lw1BjBeo6JdIqCpYDO7B5kaR3k41DI3R=w1052-h592',
+    'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page1.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page3.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page4.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/img-slide.png'
+  ];
+  const searchFallbackThumb = id => searchFallbackThumbs[Number(id || 0) % searchFallbackThumbs.length];
+%>
+<div class="search-page">
+  <div class="container">
+
+    <nav class="breadcrumb">
+      <a href="/"><i class="fas fa-home"></i> Trang Chủ</a>
+      <i class="fas fa-chevron-right"></i>
+      <span>Tìm Kiếm</span>
+    </nav>
+
+    <h1 class="page-title"><i class="fas fa-search"></i> Kết Quả Tìm Kiếm: "<%= query %>"</h1>
+    <p class="page-sub">Tìm thấy <strong style="color:var(--accent)"><%= total %></strong> acc phù hợp</p>
+
+    <% if (results && results.length > 0) { %>
+    <div class="acc-grid">
+      <% results.forEach(acc => { %>
+      <div class="acc-card" onclick="location.href='/game/<%= acc.game_slug %>/<%= acc.id %>'">
+        <div class="acc-thumb">
+          <% if (acc.thumb) { %>
+            <img src="<%= acc.thumb %>" alt="<%= acc.rank %>" loading="lazy" onerror="this.src='<%= searchFallbackThumb(acc.id) %>'">
+          <% } else { %>
+            <img src="<%= searchFallbackThumb(acc.id) %>" alt="Acc #<%= acc.id %>" loading="lazy">
+          <% } %>
+          <span class="acc-badge"><%= acc.game_icon %></span>
+        </div>
+        <div class="acc-info">
+          <div class="acc-game-name"><%= acc.game_name %></div>
+          <h3 class="acc-rank"><%= acc.rank || 'N/A' %></h3>
+          <div class="acc-stats">
+            <% if (acc.so_tuong > 0) { %><span><i class="fas fa-user-ninja"></i> <%= acc.so_tuong %></span><% } %>
+            <% if (acc.trang_phuc > 0) { %><span><i class="fas fa-tshirt"></i> <%= acc.trang_phuc %></span><% } %>
+          </div>
+          <div class="acc-footer">
+            <span class="acc-price"><%= Number(acc.price).toLocaleString('vi-VN') %>đ</span>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <%# PAGINATION %>
+    <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% if (currentPage > 1) { %>
+        <a href="?q=<%= query %>&page=<%= currentPage-1 %>" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+      <% } %>
+      <% for(let p = 1; p <= totalPages; p++) { %>
+        <a href="?q=<%= query %>&page=<%= p %>" class="page-btn <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+      <% } %>
+      <% if (currentPage < totalPages) { %>
+        <a href="?q=<%= query %>&page=<%= currentPage+1 %>" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+      <% } %>
+    </div>
+    <% } %>
+
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-search"></i>
+      <h3>Không tìm thấy kết quả</h3>
+      <p>Thử tìm với từ khóa khác hoặc <a href="/">xem tất cả acc</a></p>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<style>
+.search-page { padding: 20px 0 60px; }
+.page-title { font-size: 1.5rem; color: #fff; margin-bottom: 4px; }
+.page-sub { color: #888; margin-bottom: 24px; }
+.acc-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 16px; margin-bottom: 28px;
+}
+.acc-card {
+  background: var(--card-bg); border-radius: 12px; overflow: hidden;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.acc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(108,99,255,0.3); border-color: var(--primary); }
+.acc-thumb { position: relative; overflow: hidden; height: 150px; }
+.acc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.acc-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.6); padding: 2px 8px;
+  border-radius: 12px; font-size: 0.85rem;
+}
+.acc-info { padding: 12px; }
+.acc-game-name { color: var(--primary); font-size: 0.72rem; font-weight: 600; margin-bottom: 3px; }
+.acc-rank { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.acc-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.acc-stats span { color: #aaa; font-size: 0.75rem; }
+.acc-footer { display: flex; justify-content: flex-end; }
+.acc-price { color: var(--accent); font-weight: 700; font-size: 0.95rem; }
+.pagination {
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+}
+.page-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 8px;
+  text-decoration: none; color: #aaa;
+  border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s;
+}
+.page-btn:hover, .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.empty-state { text-align: center; padding: 60px; color: #555; }
+.empty-state i { font-size: 4rem; margin-bottom: 16px; display: block; }
+.empty-state h3 { color: #888; margin-bottom: 8px; }
+.empty-state a { color: var(--primary); }
+</style>

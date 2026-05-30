@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Acc – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>🎮 Quản Lý Acc <span style="font-size:14px;font-weight:600;color:var(--text-muted);">(<%= total %> acc)</span></h1>
+      <div style="display:flex;gap:10px;">
+        <a href="/admin/acc/them" class="btn btn-primary btn-sm">➕ Thêm Acc</a>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('bulkModal').classList.add('active')">📋 Thêm Bulk</button>
+      </div>
+    </div>
+    <div class="admin-content">
+
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <%# FILTER BAR %>
+      <div class="admin-card" style="margin-bottom:18px;">
+        <div class="admin-card-body" style="padding:14px 20px;">
+          <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="filter-group">
+              <label>Tìm kiếm</label>
+              <input type="text" name="search" value="<%= search %>" placeholder="Username / tên acc..." class="search-input">
+            </div>
+            <div class="filter-group">
+              <label>Game</label>
+              <select name="game" class="filter-group select">
+                <option value="">Tất cả game</option>
+                <% games.forEach(g => { %>
+                <option value="<%= g.slug %>" <%= game===g.slug?'selected':'' %>><%= g.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Trạng thái</label>
+              <select name="status">
+                <option value="">Tất cả</option>
+                <option value="available" <%= status==='available'?'selected':'' %>>🟢 Còn hàng</option>
+                <option value="sold" <%= status==='sold'?'selected':'' %>>🔴 Đã bán</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" type="submit">🔍 Tìm</button>
+            <a href="/admin/acc" class="btn btn-outline btn-sm">↺ Reset</a>
+          </form>
+        </div>
+      </div>
+
+      <%# TABLE %>
+      <div class="admin-card">
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>Username</th>
+                  <th>Game</th>
+                  <th>Rank / Type</th>
+                  <th>Giá</th>
+                  <th>Trạng Thái</th>
+                  <th>Ngày Thêm</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (accs.length > 0) { %>
+                  <% accs.forEach(acc => { %>
+                  <tr>
+                    <td><strong>#<%= acc.id %></strong></td>
+                    <td>
+                      <div style="font-weight:700;font-size:13px;"><%= acc.acc_username %></div>
+                      <% if (acc.title) { %><div style="font-size:11px;color:var(--text-muted);" title="<%= acc.title %>"><%= acc.title.substring(0,30) %><%= acc.title.length>30?'...':'' %></div><% } %>
+                    </td>
+                    <td style="font-size:12px;"><%= acc.game_name || acc.game_slug %></td>
+                    <td style="font-size:12px;"><%= acc.rank_name || acc.acc_type || '—' %></td>
+                    <td style="font-weight:800;color:var(--primary);"><%= Number(acc.price).toLocaleString('vi-VN') %>đ</td>
+                    <td>
+                      <% if (acc.status === 'available') { %>
+                        <span class="status-badge status-success">🟢 Còn hàng</span>
+                      <% } else { %>
+                        <span class="status-badge status-fail">🔴 Đã bán</span>
+                      <% } %>
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted);"><%= new Date(acc.created_at).toLocaleDateString('vi-VN') %></td>
+                    <td>
+                      <div class="action-btns">
+                        <button class="btn btn-outline btn-sm" onclick="viewAcc(<%= acc.id %>, '<%= acc.acc_username %>', '<%= (acc.acc_password||'').replace(/'/g,'') %>', '<%= (acc.acc_info||'').replace(/'/g,'').substring(0,100) %>')">👁️</button>
+                        <a class="btn btn-outline btn-sm" href="/admin/acc/sua/<%= acc.id %>">✏️</a>
+                        <% if (acc.status === 'available') { %>
+                        <form method="POST" action="/admin/acc/xoa/<%= acc.id %>" onsubmit="return confirm('Xóa acc #<%= acc.id %>?');" style="display:inline;">
+                          <button class="btn btn-danger btn-sm" type="submit">🗑️</button>
+                        </form>
+                        <% } %>
+                      </div>
+                    </td>
+                  </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Không có acc nào</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <%# PAGINATION %>
+      <% if (totalPages > 1) { %>
+      <div class="pagination">
+        <% if (page > 1) { %><a href="?page=<%= page-1 %>&search=<%= search %>&game=<%= game %>&status=<%= status %>">‹</a><% } %>
+        <% for(let i=1;i<=totalPages;i++) { %>
+          <% if (i===page) { %><span class="active"><%= i %></span>
+          <% } else if (i<=2||i>totalPages-2||Math.abs(i-page)<=2) { %><a href="?page=<%= i %>&search=<%= search %>&game=<%= game %>&status=<%= status %>"><%= i %></a>
+          <% } else if (Math.abs(i-page)===3) { %><span>…</span>
+          <% } %>
+        <% } %>
+        <% if (page < totalPages) { %><a href="?page=<%= page+1 %>&search=<%= search %>&game=<%= game %>&status=<%= status %>">›</a><% } %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%# VIEW ACC MODAL %>
+<div class="modal-overlay" id="viewModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('viewModal').classList.remove('active')">✕</button>
+    <h2>👁️ Thông Tin Acc</h2>
+    <div class="acc-result-box" style="margin-top:16px;">
+      <div class="acc-result-row"><span class="lbl">Username</span><span class="val" id="vUser">---</span></div>
+      <div class="acc-result-row"><span class="lbl">Password</span><span class="val" id="vPass">---</span></div>
+      <div class="acc-result-row"><span class="lbl">Info</span><span class="val" id="vInfo" style="font-size:11px;">---</span></div>
+    </div>
+  </div>
+</div>
+
+<%# BULK ADD MODAL %>
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal-box" style="max-width:560px;">
+    <button class="modal-close" onclick="document.getElementById('bulkModal').classList.remove('active')">✕</button>
+    <h2>📋 Thêm Bulk Acc</h2>
+    <p style="font-size:12.5px;color:var(--text-muted);margin:8px 0 16px;">Mỗi dòng 1 acc: <code style="background:var(--bg);padding:2px 8px;border-radius:6px;">username|password|thông tin thêm</code></p>
+    <div class="admin-form">
+      <div class="form-group">
+        <label>Game *</label>
+        <select id="bGame">
+          <option value="">-- Chọn game --</option>
+          <% games.forEach(g => { %>
+          <option value="<%= g.slug %>"><%= g.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Giá (đ) *</label>
+          <input type="number" id="bPrice" placeholder="50000">
+        </div>
+        <div class="form-group">
+          <label>Rank / Type</label>
+          <input type="text" id="bRank" placeholder="50K, VIP, REG...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dữ liệu acc (tối đa 500 dòng) *</label>
+        <textarea id="bData" rows="8" placeholder="user1|pass1|info1&#10;user2|pass2|info2&#10;user3|pass3"></textarea>
+      </div>
+      <div id="bulkMsg" style="font-size:13px;margin-bottom:12px;display:none;"></div>
+      <button class="btn btn-primary" onclick="submitBulk()" style="width:100%;">📤 Thêm Acc</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function viewAcc(id, user, pass, info) {
+  document.getElementById('vUser').textContent = user;
+  document.getElementById('vPass').textContent = pass;
+  document.getElementById('vInfo').textContent = info || '(không có)';
+  document.getElementById('viewModal').classList.add('active');
+}
+
+async function submitBulk() {
+  const game  = document.getElementById('bGame').value;
+  const price = document.getElementById('bPrice').value;
+  const rank  = document.getElementById('bRank').value;
+  const data  = document.getElementById('bData').value;
+  const msg   = document.getElementById('bulkMsg');
+
+  if (!game || !price || !data) {
+    msg.style.display='block'; msg.style.color='var(--primary)'; msg.textContent='⚠️ Vui lòng điền đầy đủ!'; return;
+  }
+
+  const fd = new FormData();
+  fd.append('game_slug', game); fd.append('price', price);
+  fd.append('rank_name', rank); fd.append('bulk_data', data);
+
+  const r = await fetch('/admin/acc/bulk', { method:'POST', body: fd });
+  const d = await r.json();
+  msg.style.display='block';
+  if (d.success) {
+    msg.style.color='#00c853'; msg.textContent=d.message;
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    msg.style.color='var(--primary)'; msg.textContent='❌ ' + d.message;
+  }
+}
+</script>
+</body>
+</html>

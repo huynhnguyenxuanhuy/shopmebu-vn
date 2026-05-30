@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="VPlay arena account">
+  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0f0004"/><stop offset=".45" stop-color="#6f0000"/><stop offset="1" stop-color="#030913"/></linearGradient></defs>
+  <rect width="600" height="360" fill="url(#b)"/>
+  <path d="M0 246c78-46 156-48 234-4 86 48 190 50 366-24v142H0z" fill="#050101" opacity=".58"/>
+  <g transform="translate(130 74)">
+    <path d="M20 168h320l-34 70H54z" fill="#1d0505"/>
+    <path d="M60 114c78-78 162-78 240 0v54H60z" fill="#8b0000"/>
+    <path d="M96 122c54-42 114-42 168 0" fill="none" stroke="#ffd15a" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="180" cy="150" r="54" fill="#110202"/>
+    <path d="M154 150h52M180 124v52" stroke="#f0cf72" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <text x="30" y="58" fill="#ffd15a" font-size="32" font-family="Arial Black, Arial">VPLAY</text>
+  <text x="30" y="88" fill="#fff" fill-opacity=".78" font-size="18" font-family="Arial">Game khac - acc hot</text>
+</svg>

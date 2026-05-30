@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Logs – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>💳 Payment Logs <span style="font-size:14px;font-weight:600;color:var(--text-muted);">(<%= total %> records)</span></h1>
+    </div>
+    <div class="admin-content">
+
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <div class="admin-card" style="margin-bottom:18px;">
+        <div class="admin-card-body" style="padding:14px 20px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="/admin/payments" class="btn <%= !filter?'btn-primary':'btn-outline' %> btn-sm">Tất cả</a>
+            <a href="/admin/payments?filter=unprocessed" class="btn <%= filter==='unprocessed'?'btn-primary':'btn-outline' %> btn-sm" style="<%= filter==='unprocessed'?'':'border-color:var(--accent-yellow);color:#856404;' %>">⚠️ Chờ xử lý</a>
+            <a href="/admin/payments?filter=processed" class="btn <%= filter==='processed'?'btn-primary':'btn-outline' %> btn-sm">✅ Đã xử lý</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>Nguồn</th>
+                  <th>Số Tiền</th>
+                  <th>Nội Dung CK</th>
+                  <th>Ref Code</th>
+                  <th>User Khớp</th>
+                  <th>Trạng Thái</th>
+                  <th>Thời Gian</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (logs.length > 0) { %>
+                  <% logs.forEach(log => { %>
+                  <tr>
+                    <td><strong>#<%= log.id %></strong></td>
+                    <td><span style="font-size:11px;background:var(--bg);padding:2px 8px;border-radius:8px;font-weight:700;"><%= log.source %></span></td>
+                    <td style="font-weight:800;color:<%= log.amount>0?'var(--green)':'var(--text-muted)' %>;">
+                      <%= Number(log.amount).toLocaleString('vi-VN') %>đ
+                    </td>
+                    <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<%= log.content %>">
+                      <%= log.content || '—' %>
+                    </td>
+                    <td style="font-size:11px;font-family:monospace;"><%= log.ref_code || '—' %></td>
+                    <td style="font-weight:700;color:var(--primary);">
+                      <%= log.matched_username || (log.matched_user ? '#'+log.matched_user : '❓ Chưa khớp') %>
+                    </td>
+                    <td>
+                      <% if (log.is_processed) { %>
+                        <span class="status-badge status-success">✅ Đã xử lý</span>
+                      <% } else { %>
+                        <span class="status-badge status-pending">⏳ Chờ</span>
+                      <% } %>
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted);"><%= new Date(log.created_at).toLocaleString('vi-VN') %></td>
+                    <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                      <% if (!log.is_processed) { %>
+                      <button class="btn btn-success btn-sm" onclick="openManual(<%= log.id %>, <%= log.amount %>, '<%= (log.content||'').replace(/'/g,'') %>')">⚡ Xử Lý</button>
+                      <% } else { %>
+                      <span style="font-size:11px;color:var(--text-muted);">Done</span>
+                      <% } %>
+                      <form action="/admin/payments/xoa/<%= log.id %>" method="POST" onsubmit="return confirm('Xóa log #<%= log.id %>?')" style="display:inline">
+                        <button type="submit" class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;cursor:pointer;">🗑️</button>
+                      </form>
+                    </td>
+                  </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text-muted);">
+                    <% if (filter==='unprocessed') { %>🎉 Không có payment nào chờ xử lý!<% } else { %>Không có dữ liệu<% } %>
+                  </td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <% if (totalPages > 1) { %>
+      <div class="pagination">
+        <% if(page>1){%><a href="?page=<%=page-1%>&filter=<%=filter%>">‹</a><%}%>
+        <%for(let i=1;i<=totalPages;i++){%><%if(i===page){%><span class="active"><%=i%></span><%}else if(i<=2||i>totalPages-2||Math.abs(i-page)<=2){%><a href="?page=<%=i%>&filter=<%=filter%>"><%=i%></a><%}%><%}%>
+        <% if(page<totalPages){%><a href="?page=<%=page+1%>&filter=<%=filter%>">›</a><%}%>
+      </div>
+      <% } %>
+
+    </div>
+  </div>
+</div>
+
+<%# MANUAL PROCESS MODAL %>
+<div class="modal-overlay" id="manualModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('manualModal').classList.remove('active')">✕</button>
+    <h2>⚡ Xử Lý Thủ Công</h2>
+    <div style="background:var(--primary-light);border:1.5px solid var(--border);border-radius:12px;padding:14px;margin:12px 0 16px;">
+      <div style="font-size:12.5px;color:var(--text-muted);">Nội dung CK:</div>
+      <div style="font-weight:700;font-size:13px;" id="manContent">---</div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">Số tiền nhận:</div>
+      <div style="font-weight:900;font-size:18px;color:var(--primary);" id="manAmount">---</div>
+    </div>
+    <div class="admin-form">
+      <input type="hidden" id="manLogId">
+      <div class="form-group">
+        <label>User ID nhận tiền *</label>
+        <input type="number" id="manUserId" placeholder="Nhập User ID (#xxx)">
+      </div>
+      <div class="form-group">
+        <label>Số tiền cộng (đ) *</label>
+        <input type="number" id="manAmt" placeholder="Số tiền thực nhận">
+      </div>
+      <div id="manMsg" style="font-size:13px;margin-bottom:12px;display:none;"></div>
+      <button class="btn btn-success" onclick="submitManual()" style="width:100%;">⚡ Cộng Tiền Cho User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openManual(logId, amount, content) {
+  document.getElementById('manLogId').value = logId;
+  document.getElementById('manAmt').value   = amount;
+  document.getElementById('manAmount').textContent = Number(amount).toLocaleString('vi-VN') + 'đ';
+  document.getElementById('manContent').textContent = content || '(không có nội dung)';
+  document.getElementById('manMsg').style.display = 'none';
+  document.getElementById('manualModal').classList.add('active');
+}
+
+async function submitManual() {
+  const log_id  = document.getElementById('manLogId').value;
+  const user_id = document.getElementById('manUserId').value;
+  const amount  = document.getElementById('manAmt').value;
+  const msg     = document.getElementById('manMsg');
+
+  if (!user_id || !amount) {
+    msg.style.display='block'; msg.style.color='var(--primary)'; msg.textContent='⚠️ Điền đầy đủ!'; return;
+  }
+
+  const fd = new FormData();
+  fd.append('log_id', log_id); fd.append('user_id', user_id); fd.append('amount', amount);
+  const r = await fetch('/admin/payments/xu-ly', { method:'POST', body:fd });
+  const d = await r.json();
+  msg.style.display='block';
+  msg.style.color = d.success ? '#00c853' : 'var(--primary)';
+  msg.textContent = d.message;
+  if (d.success) setTimeout(() => location.reload(), 1800);
+}
+</script>
+</body>
+</html>

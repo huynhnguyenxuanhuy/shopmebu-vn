@@ -1,0 +1,109 @@
+<%# ===== TRANG THÔNG BÁO ===== %>
+
+<div class="breadcrumb">
+  <a href="/">🏠 Trang chủ</a>
+  <i class="fas fa-chevron-right"></i>
+  <span>Thông Báo</span>
+</div>
+
+<div style="max-width:760px;margin:0 auto;">
+
+  <div class="section-title" style="margin-bottom:20px;">
+    <div class="section-title-icon">🔔</div>
+    <h2>Thông Báo</h2>
+    <span>(<%= total %> thông báo)</span>
+  </div>
+
+  <% if (notifications.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-icon">🔔</div>
+      <h3>Chưa có thông báo nào</h3>
+      <p>Thông báo mua hàng, nạp tiền và ưu đãi sẽ hiện ở đây.</p>
+      <a href="/" class="btn btn-primary" style="margin-top:16px;">🏠 Về Trang Chủ</a>
+    </div>
+  <% } else { %>
+    <div class="notif-list">
+      <% notifications.forEach(n => { %>
+      <div class="notif-item <%= n.is_read ? '' : 'notif-unread' %>">
+        <div class="notif-icon notif-<%= n.type %>">
+          <% if (n.type === 'order')   { %>🛒<% } %>
+          <% if (n.type === 'deposit') { %>💳<% } %>
+          <% if (n.type === 'system')  { %>📢<% } %>
+          <% if (n.type === 'promo')   { %>🎁<% } %>
+        </div>
+        <div class="notif-body">
+          <div class="notif-title"><%= n.title %></div>
+          <% if (n.message) { %>
+            <div class="notif-msg"><%= n.message %></div>
+          <% } %>
+          <div class="notif-time">
+            <i class="fas fa-clock"></i>
+            <%= new Date(n.created_at).toLocaleString('vi-VN') %>
+          </div>
+        </div>
+        <% if (!n.is_read) { %><span class="notif-dot"></span><% } %>
+        <% if (n.link) { %>
+          <a href="<%= n.link %>" class="notif-link-btn">Xem →</a>
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+
+    <%# PAGINATION %>
+    <% if (totalPages > 1) { %>
+    <div class="pagination" style="margin-top:24px;">
+      <% if (currentPage > 1) { %><a href="?page=<%= currentPage-1 %>">‹</a><% } %>
+      <% for (let i=1; i<=totalPages; i++) { %>
+        <% if (i===currentPage) { %><span class="active"><%=i%></span>
+        <% } else { %><a href="?page=<%=i%>"><%=i%></a><% } %>
+      <% } %>
+      <% if (currentPage < totalPages) { %><a href="?page=<%= currentPage+1 %>">›</a><% } %>
+    </div>
+    <% } %>
+  <% } %>
+
+</div>
+
+<style>
+.notif-list { display:flex; flex-direction:column; gap:10px; }
+.notif-item {
+  background:#fff; border:1.5px solid var(--border); border-radius:14px;
+  padding:16px 18px; display:flex; align-items:flex-start; gap:14px;
+  transition:all .2s; position:relative;
+}
+.notif-item:hover { border-color:var(--primary); box-shadow:var(--shadow-card); }
+.notif-unread { border-color:rgba(230,21,21,.3); background:var(--primary-light); }
+.notif-icon {
+  width:44px; height:44px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:20px;
+}
+.notif-order   { background:#e8faf2; }
+.notif-deposit { background:var(--primary-light); }
+.notif-system  { background:#e3f2fd; }
+.notif-promo   { background:#fff8e1; }
+.notif-body { flex:1; min-width:0; }
+.notif-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.notif-msg { font-size:12.5px; color:var(--text-muted); line-height:1.5; margin-bottom:6px; }
+.notif-time { font-size:11px; color:var(--text-light); display:flex; align-items:center; gap:5px; }
+.notif-dot {
+  width:10px; height:10px; border-radius:50%; background:var(--primary);
+  flex-shrink:0; box-shadow:0 0 6px var(--primary); margin-top:4px;
+}
+.notif-link-btn {
+  font-size:12px; font-weight:700; color:var(--primary);
+  white-space:nowrap; padding:4px 10px; border-radius:8px;
+  border:1.5px solid var(--primary); transition:all .15s; flex-shrink:0;
+}
+.notif-link-btn:hover { background:var(--primary); color:#fff; }
+.empty-state {
+  text-align:center; padding:60px 20px;
+  background:#fff; border:1.5px solid var(--border); border-radius:18px;
+}
+.empty-icon { font-size:56px; margin-bottom:16px; }
+.empty-state h3 { font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.empty-state p { font-size:13px; color:var(--text-muted); }
+@media (max-width:480px) {
+  .notif-item { padding:12px 14px; gap:10px; }
+  .notif-icon { width:36px; height:36px; font-size:16px; border-radius:10px; }
+}
+</style>

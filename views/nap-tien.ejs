@@ -1,0 +1,932 @@
+<%# ===== TRANG NẠP TIỀN ===== %>
+
+<div class="naptien-page">
+  <div class="container">
+
+    <%# ── BREADCRUMB ── %>
+    <nav class="breadcrumb">
+      <a href="/"><i class="fas fa-home"></i> Trang Chủ</a>
+      <i class="fas fa-chevron-right"></i>
+      <span>Nạp Tiền</span>
+    </nav>
+
+    <%# ── FLASH ── %>
+    <% if (success_msg && success_msg.length > 0) { %>
+      <div class="flash flash-success"><i class="fas fa-check-circle"></i> <%= success_msg[0] %></div>
+    <% } %>
+    <% if (error_msg && error_msg.length > 0) { %>
+      <div class="flash flash-error"><i class="fas fa-exclamation-circle"></i> <%= error_msg[0] %></div>
+    <% } %>
+
+    <%# ── HEADER ── %>
+    <div class="nt-header">
+      <h1><i class="fas fa-wallet"></i> Nạp Tiền Vào Tài Khoản</h1>
+      <p class="nt-sub">Nạp tự động qua TPBank 24/7 • MoMo chờ admin duyệt</p>
+      <div class="nt-balance-box">
+        <span>Số dư hiện tại:</span>
+        <strong class="balance-display"><%= Number(user.balance).toLocaleString('vi-VN') %>đ</strong>
+      </div>
+    </div>
+
+    <%# ── BONUS BANNER ── %>
+    <% if (bonus > 0) { %>
+    <div class="bonus-banner">
+      <i class="fas fa-gift"></i>
+      <div>
+        <strong>🎁 KHUYẾN MÃI: Nạp tiền +<%= bonus %>% cho mỗi giao dịch!</strong>
+        <span>Áp dụng cho MoMo & TPBank • Không giới hạn số lần nạp</span>
+      </div>
+    </div>
+    <% } %>
+
+    <%# ── CHỌN GÓI NẠP TRƯỚC KHI HIỆN QR ── %>
+    <div class="deposit-step-card">
+      <div class="step-copy">
+        <div class="auto-nap-kicker"><i class="fas fa-bolt"></i> Nạp tự động qua VietQR / SePay</div>
+        <h2>Chọn số tiền muốn nạp</h2>
+        <p>Chọn mệnh giá rồi bấm tiến hành nạp tiền. Mã QR sẽ được tạo riêng theo số tiền và nội dung <strong><%= napCode %></strong>.</p>
+      </div>
+
+      <div class="deposit-builder">
+        <div class="amount-grid" id="amountGrid">
+          <% [10000, 20000, 50000, 100000, 200000, 500000].forEach((amount, idx) => { %>
+            <button type="button" class="amount-choice <%= amount === 100000 ? 'active' : '' %>" data-amount="<%= amount %>" onclick="setAmount(<%= amount %>)">
+              <span><%= amount.toLocaleString('vi-VN') %>đ</span>
+              <% if (bonus > 0) { %><small>Nhận <%= Math.floor(amount * (100 + Number(bonus)) / 100).toLocaleString('vi-VN') %>đ</small><% } %>
+            </button>
+          <% }) %>
+        </div>
+
+        <div class="custom-amount-row">
+          <label for="depositAmount">Hoặc nhập số tiền khác</label>
+          <div class="custom-amount-control">
+            <input type="number" id="depositAmount" min="10000" step="1000" value="100000" oninput="updateQrAmount()">
+            <span>VNĐ</span>
+          </div>
+        </div>
+
+        <div class="deposit-summary" style="<%= bonus > 0 ? '' : 'grid-template-columns: 1fr 1fr;' %>">
+          <div>
+            <span>Số tiền nạp</span>
+            <strong id="selectedAmountText">100.000đ</strong>
+          </div>
+          <% if (bonus > 0) { %>
+          <div>
+            <span>Bonus +<%= bonus %>%</span>
+            <strong id="bonusAmountText">0đ</strong>
+          </div>
+          <% } %>
+          <div>
+            <span>Thực nhận</span>
+            <strong id="receiveAmount">100.000đ</strong>
+          </div>
+        </div>
+
+        <button type="button" class="btn-proceed-deposit" onclick="showPaymentQr()">
+          <i class="fas fa-qrcode"></i> Tiến Hành Nạp Tiền
+        </button>
+        <div class="deposit-mini-note">
+          Tối thiểu 10.000đ. Hệ thống tự cộng số dư khi nhận đúng nội dung chuyển khoản.
+        </div>
+      </div>
+    </div>
+
+    <%# ── QR CHỈ HIỆN SAU KHI BẤM TIẾN HÀNH ── %>
+    <div class="qr-result-panel" id="qrResultPanel" hidden>
+      <div class="qr-result-head">
+        <div>
+          <div class="auto-nap-kicker"><i class="fas fa-check-circle"></i> Bước cuối</div>
+          <h2>Quét QR để hoàn tất nạp tiền</h2>
+          <p>Chuyển đúng <strong id="qrAmountText">100.000đ</strong> với nội dung <strong id="napCode"><%= napCode %></strong>.</p>
+        </div>
+        <button class="btn-copy-code" onclick="copyNapCode()">
+          <i class="fas fa-copy"></i> Sao chép nội dung
+        </button>
+      </div>
+
+      <div class="napcode-warn">
+        <i class="fas fa-exclamation-triangle"></i>
+        Không sửa nội dung chuyển khoản. Sai nội dung hệ thống sẽ không tự cộng tiền.
+      </div>
+
+      <div class="bank-cols">
+
+      <%# ── TPBANK (tự động) ── %>
+      <div class="bank-card tpbank-card" style="grid-column:1/-1;max-width:420px;margin:0 auto;">
+        <div class="bank-header">
+          <div class="bank-logo-text tpbank-logo">TPBank</div>
+          <span class="bank-name">TPBank</span>
+        </div>
+        <div class="bank-qr">
+          <%
+            const tpbStk = (banks.tpbank.stk || '').replace(/\s/g, '');
+            const tpbQRBase = tpbStk
+              ? `https://img.vietqr.io/image/TPB-${tpbStk}-compact2.jpg?accountName=${encodeURIComponent(banks.tpbank.name || 'VO PHAN TRUNG HIEU')}`
+              : null;
+          %>
+          <% if (tpbQRBase) { %>
+            <img src="<%= tpbQRBase %>&amount=100000&addInfo=<%= encodeURIComponent(napCode) %>" alt="QR TPBank" class="payment-qr" id="tpbankQr"
+                 onerror="this.style.display='none';document.getElementById('tpbFallback').style.display='block'">
+          <% } %>
+          <div id="tpbFallback" style="width:200px;height:200px;background:linear-gradient(135deg,#f5f5f5,#e0e0e0);border-radius:14px;flex-direction:column;align-items:center;justify-content:center;margin:12px auto;border:2px dashed #ccc;<%= tpbQRBase ? 'display:none;' : 'display:flex;' %>">
+            <div style="font-size:36px;margin-bottom:8px;">🏦</div>
+            <div style="font-size:12px;color:#999;text-align:center;padding:0 12px;">Cập nhật STK TPBank trong Admin Settings</div>
+          </div>
+          <div class="qr-label">Quét mã → tự điền sẵn nội dung CK</div>
+        </div>
+        <div class="bank-details">
+          <div class="bank-row">
+            <span class="bank-key">Số tài khoản:</span>
+            <span class="bank-val"><%= banks.tpbank.stk %></span>
+            <button onclick="copyText('<%= banks.tpbank.stk.replace(/ /g, '') %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
+          </div>
+          <div class="bank-row">
+            <span class="bank-key">Tên tài khoản:</span>
+            <span class="bank-val"><%= banks.tpbank.name %></span>
+          </div>
+          <div class="bank-row important">
+            <span class="bank-key">Nội dung CK:</span>
+            <span class="bank-val"><%= napCode %></span>
+            <button onclick="copyText('<%= napCode %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
+          </div>
+        </div>
+      </div>
+
+      </div><%# end bank-cols %>
+    </div><%# end qr-result-panel %>
+
+    <%# ── MOMO THỦ CÔNG ── %>
+    <div class="momo-manual-panel">
+      <div class="momo-manual-header">
+        <i class="fas fa-hand-paper"></i>
+        <div>
+          <strong>Nạp thủ công qua MoMo</strong>
+          <span>Admin sẽ duyệt và cộng tiền trong vòng 15–30 phút</span>
+        </div>
+        <span class="manual-badge">Thủ công</span>
+      </div>
+
+      <div class="momo-manual-warn">
+        <i class="fas fa-clock"></i>
+        Chuyển khoản MoMo <strong>không tự động</strong> — số dư sẽ được cộng sau khi admin kiểm tra. Ghi đúng nội dung <strong><%= napCode %></strong> để admin xác nhận nhanh hơn.
+      </div>
+
+      <div class="momo-manual-body">
+        <div class="momo-qr-wrap">
+          <img src="<%= banks.momo.qr_img %>" alt="QR MoMo" class="payment-qr momo-static-qr"
+               onerror="this.style.display='none';document.getElementById('momoFallback').style.display='flex'">
+          <div id="momoFallback" class="qr-fallback momo-qr-fallback" style="display:none;">
+            <div class="qr-brand-line"><span>momo</span><span>VIETQR</span><span>napas 247</span></div>
+            <div class="fake-qr">QR</div>
+            <div class="qr-owner">VÕ PHAN TRUNG HIẾU<br><small>STK: <%= banks.momo.stk %></small></div>
+          </div>
+          <div class="qr-label" style="color:#555;">Quét mã để chuyển tiền</div>
+        </div>
+        <div class="bank-details">
+          <div class="bank-row">
+            <span class="bank-key">Số điện thoại:</span>
+            <span class="bank-val"><%= banks.momo.stk %></span>
+            <button onclick="copyText('<%= banks.momo.stk %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
+          </div>
+          <div class="bank-row">
+            <span class="bank-key">Tên tài khoản:</span>
+            <span class="bank-val"><%= banks.momo.name %></span>
+          </div>
+          <div class="bank-row important">
+            <span class="bank-key">Nội dung CK:</span>
+            <span class="bank-val"><%= napCode %></span>
+            <button onclick="copyText('<%= napCode %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# ── HƯỚNG DẪN ── %>
+    <div class="howto-box">
+      <h3><i class="fas fa-list-ol"></i> Hướng Dẫn Nạp Tiền</h3>
+      <ol>
+        <li><strong style="color:var(--primary)">Nạp tự động (TPBank):</strong> Chọn số tiền → bấm Tiến Hành → quét QR TPBank. Số dư cộng trong <strong>30 giây</strong>.</li>
+        <li><strong style="color:#ae2070">Nạp thủ công (MoMo):</strong> Quét QR MoMo phía dưới, ghi đúng nội dung <strong><%= napCode %></strong>. Admin sẽ duyệt trong 15–30 phút.</li>
+        <li>Tối thiểu 10.000đ cho cả hai phương thức.</li>
+        <% if (bonus > 0) { %><li>Bạn nhận thêm <strong>+<%= bonus %>% bonus</strong> trên số tiền nạp</li><% } %>
+      </ol>
+      <div class="howto-note">
+        <i class="fas fa-info-circle"></i>
+        Nếu sau 5 phút chưa nhận được tiền, vui lòng liên hệ hỗ trợ qua
+        <a href="https://zalo.me/g/gssfxa652" target="_blank">Zalo</a> hoặc
+        <a href="https://www.facebook.com/share/18jMzbCfXh/" target="_blank">Facebook</a>
+      </div>
+    </div>
+
+    <%# ── BẢNG KHUYẾN MÃI (chỉ hiện khi bonus > 0) ── %>
+    <% if (bonus > 0) { %>
+    <div class="bonus-table-box">
+      <h3><i class="fas fa-percentage"></i> Bảng Khuyến Mãi</h3>
+      <div class="bonus-table">
+        <div class="bonus-row header">
+          <span>Số Tiền Nạp</span>
+          <span>Bonus +<%= bonus %>%</span>
+          <span>Thực Nhận</span>
+        </div>
+        <% [[10000,1000,11000],[20000,2000,22000],[50000,5000,55000],[100000,10000,110000],[200000,20000,220000],[500000,50000,550000]].forEach(([nap, bn, total]) => { %>
+        <div class="bonus-row">
+          <span><%= nap.toLocaleString('vi-VN') %>đ</span>
+          <span class="bonus-plus">+<%= bn.toLocaleString('vi-VN') %>đ</span>
+          <span class="bonus-total"><%= total.toLocaleString('vi-VN') %>đ</span>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <%# ── LỊCH SỬ NẠP TIỀN ── %>
+    <div class="history-box">
+      <h3><i class="fas fa-history"></i> Lịch Sử Nạp Tiền</h3>
+      <% if (history && history.length > 0) { %>
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Thời Gian</th>
+              <th>Số Tiền</th>
+              <th>Phương Thức</th>
+              <th>Nội Dung</th>
+              <th>Trạng Thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% history.forEach((tx, i) => { %>
+            <tr>
+              <td><%= i + 1 %></td>
+              <td><%= new Date(tx.created_at).toLocaleString('vi-VN') %></td>
+              <td class="tx-amount">+<%= Number(tx.amount).toLocaleString('vi-VN') %>đ</td>
+              <td><span class="method-badge <%= tx.payment_method %>"><%= tx.payment_method || 'ATM' %></span></td>
+              <td class="tx-content"><%= tx.transfer_content || '—' %></td>
+              <td>
+                <span class="status-badge <%= tx.status %>">
+                  <% if (tx.status === 'success') { %><i class="fas fa-check"></i> Thành công
+                  <% } else if (tx.status === 'pending') { %><i class="fas fa-clock"></i> Đang xử lý
+                  <% } else { %><i class="fas fa-times"></i> Thất bại<% } %>
+                </span>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>Chưa có lịch sử nạp tiền</p>
+      </div>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.naptien-page { padding: 20px 0 60px; }
+.nt-header { text-align: center; margin-bottom: 24px; }
+.nt-header h1 { font-size: 1.8rem; color: #fff; margin-bottom: 6px; }
+.nt-sub { color: #aaa; margin-bottom: 14px; }
+.nt-balance-box {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--primary);
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 1rem;
+}
+.balance-display { color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+
+.bonus-banner {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #000;
+  padding: 14px 20px;
+  border-radius: 12px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 24px;
+}
+.bonus-banner i { font-size: 2rem; }
+.bonus-banner strong { display: block; font-size: 1rem; margin-bottom: 3px; }
+.bonus-banner span { font-size: 0.85rem; opacity: 0.8; }
+
+.napcode-box {
+  background: var(--card-bg);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 28px;
+}
+.napcode-label { color: #aaa; font-size: 0.9rem; margin-bottom: 10px; }
+.napcode-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 3px;
+  font-family: monospace;
+  margin-bottom: 12px;
+}
+.btn-copy-code {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: opacity 0.2s;
+}
+.btn-copy-code:hover { opacity: 0.85; }
+.napcode-warn {
+  color: #e74c3c;
+  font-size: 0.82rem;
+  background: rgba(231,76,60,0.1);
+  padding: 8px 14px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.deposit-step-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 360px;
+  gap: 18px;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255,214,0,.18), transparent 28%),
+    linear-gradient(135deg, #fff5f5, #fff);
+  border: 1.5px solid #ffd7d7;
+  border-top: 4px solid var(--primary);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 24px;
+  color: #5f1f1f;
+  box-shadow: 0 10px 28px rgba(230,21,21,.08);
+}
+.step-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auto-nap-kicker {
+  color: var(--primary);
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.deposit-step-card h2,
+.qr-result-head h2 {
+  font-size: 1.35rem;
+  margin-bottom: 8px;
+  color: #2b0808;
+}
+.deposit-step-card p,
+.qr-result-head p {
+  line-height: 1.65;
+  color: #7d4a4a;
+}
+.deposit-step-card strong,
+.qr-result-head strong { color: var(--primary); }
+.deposit-builder {
+  background: #fff;
+  border: 1px solid #ffd7d7;
+  border-radius: 12px;
+  padding: 16px;
+}
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.amount-choice {
+  border: 1.5px solid #ffd0d0;
+  background: #fff8f8;
+  color: #822929;
+  border-radius: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.amount-choice span {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+}
+.amount-choice small {
+  display: block;
+  margin-top: 3px;
+  color: #a76666;
+  font-size: 11px;
+  font-weight: 700;
+}
+.amount-choice:hover,
+.amount-choice.active {
+  background: linear-gradient(135deg, var(--primary), #ff6a00);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(230,21,21,.22);
+  transform: translateY(-1px);
+}
+.amount-choice:hover small,
+.amount-choice.active small { color: rgba(255,255,255,.82); }
+.custom-amount-row {
+  margin-top: 14px;
+}
+.custom-amount-row label {
+  display: block;
+  font-weight: 800;
+  font-size: 13px;
+  color: #7d4a4a;
+  margin-bottom: 8px;
+}
+.custom-amount-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border: 2px solid #ffd0d0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.custom-amount-control input {
+  width: 100%;
+  border: 0;
+  padding: 12px 14px;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--primary);
+  outline: none;
+}
+.custom-amount-control span {
+  padding: 0 14px;
+  color: #9b3434;
+  font-weight: 900;
+  font-size: 13px;
+}
+.custom-amount-control:focus-within { border-color: var(--primary); }
+.deposit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.deposit-summary div {
+  background: #fff8f8;
+  border: 1px solid #ffe0e0;
+  border-radius: 10px;
+  padding: 10px;
+}
+.deposit-summary span {
+  display: block;
+  color: #9f6a6a;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.deposit-summary strong {
+  display: block;
+  color: #0a9b50;
+  font-size: 15px;
+  font-weight: 900;
+}
+.btn-proceed-deposit {
+  width: 100%;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #e60000, #ff6a00);
+  color: #fff;
+  font-weight: 900;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(230,21,21,.28);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.btn-proceed-deposit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(230,21,21,.34);
+}
+.deposit-mini-note {
+  margin-top: 10px;
+  color: #9f6a6a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.receive-line {
+  margin-top: 12px;
+  color: #7d4a4a;
+  font-size: 13px;
+}
+.receive-line strong {
+  color: #0a9b50;
+  font-size: 16px;
+}
+.qr-result-panel {
+  background: linear-gradient(135deg, #fff, #fff8f8);
+  border: 1.5px solid #ffd7d7;
+  border-top: 4px solid #0a9b50;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 12px 28px rgba(10,155,80,.08);
+}
+.qr-result-panel[hidden] { display: none; }
+.qr-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+@media (max-width: 768px) {
+  .deposit-step-card { grid-template-columns: 1fr; }
+  .qr-result-head { align-items: stretch; flex-direction: column; }
+  .deposit-summary { grid-template-columns: 1fr; }
+}
+
+.bank-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+@media (max-width: 600px) { .bank-cols { grid-template-columns: 1fr; } }
+
+.bank-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.momo-card { border-top: 3px solid #ae2070; }
+.tpbank-card { border-top: 3px solid #dd2a1b; }
+
+.bank-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.bank-logo { height: 32px; object-fit: contain; }
+.bank-logo-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  height: 34px;
+  border-radius: 9px;
+  padding: 0 12px;
+  font-weight: 900;
+  color: #fff;
+}
+.momo-logo { background: linear-gradient(135deg, #ae2070, #d94a9b); }
+.tpbank-logo { background: linear-gradient(135deg, #4b208c, #ff7a00); }
+.bank-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+
+.bank-qr {
+  text-align: center;
+  padding: 20px;
+  background: #fff;
+}
+.bank-qr img { width: 230px; height: 230px; object-fit: contain; }
+.qr-label { color: #333; font-size: 0.78rem; margin-top: 6px; }
+.qr-fallback {
+  width: 230px;
+  height: 230px;
+  margin: 0 auto;
+  border-radius: 18px;
+  background: #fdeaf4;
+  border: 1px solid #f5cfe2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #2b1630;
+}
+.momo-qr-fallback { display: flex; }
+.qr-brand-line {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #93256f;
+}
+.fake-qr {
+  width: 118px;
+  height: 118px;
+  background:
+    linear-gradient(90deg, #111 8px, transparent 8px) 0 0/18px 18px,
+    linear-gradient(#111 8px, transparent 8px) 0 0/18px 18px,
+    #fff;
+  border: 12px solid #fff;
+  box-shadow: inset 0 0 0 2px #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #ae2070;
+}
+.qr-owner {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+.qr-owner small { font-size: 11px; color: #5f4a5f; }
+
+.bank-details { padding: 16px 20px; }
+.bank-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.88rem;
+}
+.bank-row:last-child { border-bottom: none; }
+.bank-key { color: #888; flex-shrink: 0; width: 110px; }
+.bank-val { color: #fff; font-weight: 600; flex: 1; font-family: monospace; }
+.bank-row.important .bank-val { color: var(--accent); font-size: 1rem; font-weight: 700; }
+.btn-mini-copy {
+  background: rgba(108,99,255,0.2);
+  color: var(--primary);
+  border: none; padding: 3px 8px;
+  border-radius: 4px; cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.momo-manual-panel {
+  background: #fff8fc;
+  border: 1.5px solid #f0b8d8;
+  border-top: 4px solid #ae2070;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+.momo-manual-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 14px;
+}
+.momo-manual-header i { font-size: 1.6rem; color: #ae2070; }
+.momo-manual-header strong { display: block; color: #2b0820; font-size: 1.1rem; }
+.momo-manual-header span { font-size: 0.83rem; color: #7a4060; }
+.manual-badge {
+  margin-left: auto;
+  background: #ae2070;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.momo-manual-warn {
+  background: rgba(174,32,112,0.08);
+  border: 1px solid #f0b8d8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #6b2040;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.momo-manual-warn i { margin-right: 6px; color: #ae2070; }
+.momo-manual-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.momo-qr-wrap { text-align: center; }
+@media (max-width: 600px) {
+  .momo-manual-body { grid-template-columns: 1fr; }
+  .momo-manual-header { flex-wrap: wrap; }
+}
+
+.howto-box {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border-left: 4px solid var(--primary);
+}
+.howto-box h3 { color: #fff; margin-bottom: 16px; }
+.howto-box ol { padding-left: 20px; color: #ccc; line-height: 2; }
+.howto-box strong { color: var(--accent); }
+.howto-note {
+  background: rgba(108,99,255,0.1);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-top: 12px;
+}
+.howto-note a { color: var(--primary); }
+
+.bonus-table-box {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.bonus-table-box h3 { color: #fff; margin-bottom: 16px; }
+.bonus-table { border-radius: 8px; overflow: hidden; }
+.bonus-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.bonus-row.header {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.bonus-row:nth-child(even) { background: rgba(255,255,255,0.03); }
+.bonus-plus { color: #2ecc71; font-weight: 600; }
+.bonus-total { color: var(--accent); font-weight: 700; }
+
+.history-box {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+}
+.history-box h3 { color: #fff; margin-bottom: 16px; }
+.history-table-wrap { overflow-x: auto; }
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.history-table th {
+  background: rgba(108,99,255,0.2);
+  color: #ccc;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+.history-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #ddd;
+}
+.history-table tr:hover td { background: rgba(255,255,255,0.03); }
+.tx-amount { color: #2ecc71; font-weight: 700; }
+.tx-content { font-size: 0.78rem; color: #888; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.method-badge {
+  padding: 2px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+}
+.method-badge.momo { background: rgba(174,32,112,0.2); color: #e91e8c; }
+.method-badge.tpbank { background: rgba(221,42,27,0.2); color: #ff6b6b; }
+.method-badge.atm { background: rgba(46,204,113,0.2); color: #2ecc71; }
+.status-badge {
+  padding: 2px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.status-badge.success { background: rgba(46,204,113,0.15); color: #2ecc71; }
+.status-badge.pending { background: rgba(243,156,18,0.15); color: var(--accent); }
+.status-badge.failed  { background: rgba(231,76,60,0.15); color: #e74c3c; }
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #555;
+}
+.empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
+</style>
+
+<script>
+function copyNapCode() {
+  const code = document.getElementById('napCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('✅ Đã sao chép mã nạp tiền: ' + code);
+  });
+}
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✅ Đã sao chép!'));
+}
+function showToast(msg, color) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;background:${color||'var(--primary)'};color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.9rem;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:opacity 0.4s`;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3000);
+}
+
+const tpbankQrBase = '<%= tpbQRBase || "" %>';
+const napContent = '<%= napCode %>';
+const bonusPct = <%= Number(bonus) %>;
+
+function formatMoney(amount) {
+  return Number(amount || 0).toLocaleString('vi-VN') + 'đ';
+}
+
+function normalizeAmount() {
+  const input = document.getElementById('depositAmount');
+  const amount = Math.max(0, parseInt(input?.value || '0', 10) || 0);
+  return amount;
+}
+
+function updateQrAmount() {
+  const amount = normalizeAmount();
+  const bonusAmount = Math.floor(amount * bonusPct / 100);
+  const receive = amount + bonusAmount;
+  const selectedEl = document.getElementById('selectedAmountText');
+  const bonusEl = document.getElementById('bonusAmountText');
+  const receiveEl = document.getElementById('receiveAmount');
+  const qrAmountEl = document.getElementById('qrAmountText');
+  if (selectedEl) selectedEl.textContent = formatMoney(amount);
+  if (bonusEl) bonusEl.textContent = formatMoney(bonusAmount);
+  if (receiveEl) receiveEl.textContent = formatMoney(receive);
+  if (qrAmountEl) qrAmountEl.textContent = formatMoney(amount);
+
+  document.querySelectorAll('.amount-choice').forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.amount) === amount);
+  });
+
+  const qr = document.getElementById('tpbankQr');
+  if (qr && tpbankQrBase) {
+    const validAmount = amount >= 10000 ? amount : 10000;
+    qr.src = `${tpbankQrBase}&amount=${validAmount}&addInfo=${encodeURIComponent(napContent)}`;
+  }
+}
+
+function setAmount(amount) {
+  const input = document.getElementById('depositAmount');
+  if (input) input.value = amount;
+  updateQrAmount();
+}
+
+function showPaymentQr() {
+  const amount = normalizeAmount();
+  if (amount < 10000) {
+    showToast('⚠️ Số tiền nạp tối thiểu là 10.000đ', '#e74c3c');
+    return;
+  }
+
+  updateQrAmount();
+  const panel = document.getElementById('qrResultPanel');
+  if (panel) {
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+updateQrAmount();
+
+// ── AUTO-REFRESH SỐ DƯ ──
+// Poll mỗi 5 giây, nếu số dư thay đổi → hiện thông báo + cập nhật UI
+<% if (user) { %>
+(function() {
+  let lastBalance = <%= Number(user.balance) %>;
+
+  async function checkBalance() {
+    try {
+      const res  = await fetch('/api/me/balance');
+      const data = await res.json();
+      if (data.balance === null) return;
+
+      if (data.balance !== lastBalance) {
+        const diff = data.balance - lastBalance;
+        lastBalance = data.balance;
+
+        // Cập nhật số dư trên trang nạp tiền
+        const el = document.querySelector('.balance-display');
+        if (el) {
+          el.textContent = data.balance.toLocaleString('vi-VN') + 'đ';
+          el.style.animation = 'none';
+          el.offsetHeight; // reflow
+          el.style.animation = 'balanceFlash 0.6s ease';
+        }
+
+        // Cập nhật balance trên header
+        const hdr = document.getElementById('headerBalance');
+        if (hdr) hdr.textContent = data.balance.toLocaleString('vi-VN');
+
+        // Toast thông báo
+        if (diff > 0) {
+          showToast(`💰 Nạp tiền thành công! +${diff.toLocaleString('vi-VN')}đ → Số dư: ${data.balance.toLocaleString('vi-VN')}đ`, '#27ae60');
+        }
+      }
+    } catch(e) {}
+  }
+
+  setInterval(checkBalance, 5000);
+})();
+<% } %>
+</script>
+
+<style>
+@keyframes balanceFlash {
+  0%   { color: var(--accent); transform: scale(1); }
+  30%  { color: #2ecc71;       transform: scale(1.15); }
+  100% { color: var(--accent); transform: scale(1); }
+}
+</style>

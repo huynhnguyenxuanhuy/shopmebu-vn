@@ -1,0 +1,195 @@
+<%# ===== TRANG LỊCH SỬ MUA HÀNG ===== %>
+
+<div class="breadcrumb">
+  <a href="/">🏠 Trang chủ</a>
+  <i class="fas fa-chevron-right"></i>
+  <a href="/tai-khoan">Tài khoản</a>
+  <i class="fas fa-chevron-right"></i>
+  <span>Lịch Sử Mua Hàng</span>
+</div>
+
+<%# STATS SUMMARY %>
+<div class="lsm-stats">
+  <div class="lsm-stat-card">
+    <div class="lsm-stat-icon">🛒</div>
+    <div>
+      <div class="lsm-stat-label">Tổng Đơn Hàng</div>
+      <div class="lsm-stat-value"><%= stats.total_orders %></div>
+    </div>
+  </div>
+  <div class="lsm-stat-card">
+    <div class="lsm-stat-icon">💸</div>
+    <div>
+      <div class="lsm-stat-label">Tổng Chi Tiêu</div>
+      <div class="lsm-stat-value grad-text"><%= Number(stats.total_spent||0).toLocaleString('vi-VN') %>đ</div>
+    </div>
+  </div>
+  <div class="lsm-stat-card">
+    <div class="lsm-stat-icon">✅</div>
+    <div>
+      <div class="lsm-stat-label">Đơn Thành Công</div>
+      <div class="lsm-stat-value" style="color:var(--green);"><%= stats.total_orders %></div>
+    </div>
+  </div>
+</div>
+
+<%# ORDER LIST %>
+<div class="section-title">
+  <div class="section-title-icon">🛒</div>
+  <h2>Lịch Sử Mua Hàng</h2>
+  <span>(<%= total %> đơn)</span>
+</div>
+
+<% if (orders.length === 0) { %>
+  <div class="empty-state">
+    <div class="empty-icon">🛒</div>
+    <h3>Chưa có đơn hàng nào</h3>
+    <p>Bạn chưa mua acc nào. Khám phá kho hàng ngay!</p>
+    <a href="/" class="btn btn-primary" style="margin-top:16px;">⚔️ Mua Acc Ngay</a>
+  </div>
+<% } else { %>
+  <div class="order-list">
+    <% orders.forEach(o => { %>
+    <div class="order-card">
+      <div class="order-card-header">
+        <div class="order-game-badge">
+          <%= o.game_icon %> <%= o.game_name %>
+        </div>
+        <div class="order-id">#<%= o.id %></div>
+        <span class="status-badge <%= o.status === 'completed' ? 'status-success' : (o.status === 'refunded' ? 'status-fail' : 'status-pending') %>">
+          <% if (o.status === 'completed') { %>✅ Thành công
+          <% } else if (o.status === 'refunded') { %>↩️ Hoàn tiền
+          <% } else { %>⏳ Đang xử lý<% } %>
+        </span>
+      </div>
+      <div class="order-card-body">
+        <div class="order-acc-info">
+          <% if (o.rank || o.so_tuong) { %>
+            <% if (o.rank) { %><span class="acc-tag">🏆 <%= o.rank %></span><% } %>
+            <% if (o.so_tuong) { %><span class="acc-tag">⚔️ <%= o.so_tuong %> tướng</span><% } %>
+            <% if (o.trang_phuc) { %><span class="acc-tag">👗 <%= o.trang_phuc %> trang phục</span><% } %>
+          <% } %>
+        </div>
+        <div class="order-creds">
+          <div class="cred-row">
+            <span class="cred-lbl">👤 Tài khoản</span>
+            <span class="cred-val" id="user_<%= o.id %>"><%= o.acc_username || '—' %></span>
+            <% if (o.acc_username) { %>
+              <button class="copy-btn" onclick="copyText('user_<%= o.id %>')">📋</button>
+            <% } %>
+          </div>
+          <div class="cred-row">
+            <span class="cred-lbl">🔑 Mật khẩu</span>
+            <span class="cred-val" id="pw_<%= o.id %>"><%= o.acc_password || '—' %></span>
+            <% if (o.acc_password) { %>
+              <button class="copy-btn" onclick="copyText('pw_<%= o.id %>')">📋</button>
+            <% } %>
+          </div>
+          <% if (o.acc_info) { %>
+          <div class="cred-row">
+            <span class="cred-lbl">📝 Ghi chú</span>
+            <span class="cred-val" style="font-size:12px;"><%= o.acc_info %></span>
+          </div>
+          <% } %>
+        </div>
+      </div>
+      <div class="order-card-footer">
+        <span class="order-time"><i class="fas fa-clock"></i> <%= new Date(o.created_at).toLocaleString('vi-VN') %></span>
+        <span class="order-price"><%= Number(o.amount).toLocaleString('vi-VN') %>đ</span>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <%# PAGINATION %>
+  <% if (totalPages > 1) { %>
+  <div class="pagination" style="margin-top:24px;">
+    <% if (currentPage > 1) { %><a href="?page=<%= currentPage-1 %>">‹</a><% } %>
+    <% for (let i=1; i<=totalPages; i++) { %>
+      <% if (i===currentPage) { %><span class="active"><%=i%></span>
+      <% } else { %><a href="?page=<%=i%>"><%=i%></a><% } %>
+    <% } %>
+    <% if (currentPage < totalPages) { %><a href="?page=<%= currentPage+1 %>">›</a><% } %>
+  </div>
+  <% } %>
+<% } %>
+
+<style>
+.lsm-stats {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px;
+}
+.lsm-stat-card {
+  background:#fff; border:1.5px solid var(--border); border-radius:14px;
+  padding:16px 18px; display:flex; align-items:center; gap:14px;
+}
+.lsm-stat-icon { font-size:26px; }
+.lsm-stat-label { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+.lsm-stat-value { font-size:20px; font-weight:900; color:var(--text); }
+.grad-text {
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.order-list { display:flex; flex-direction:column; gap:14px; }
+.order-card {
+  background:#fff; border:1.5px solid var(--border); border-radius:16px;
+  overflow:hidden; transition:all .2s;
+}
+.order-card:hover { border-color:var(--primary); box-shadow:var(--shadow-card); }
+.order-card-header {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:12px 18px; background:var(--bg);
+  border-bottom:1.5px solid var(--border);
+}
+.order-game-badge {
+  font-size:12.5px; font-weight:700; color:var(--primary);
+  background:var(--primary-light); padding:4px 12px; border-radius:20px;
+}
+.order-id { font-size:11px; color:var(--text-muted); font-weight:600; margin-left:auto; }
+.order-card-body { padding:14px 18px; }
+.order-acc-info { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.order-creds {
+  background:linear-gradient(135deg,#1a0000,#3a0000);
+  border-radius:12px; padding:14px 16px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.cred-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+.cred-lbl { color:rgba(255,255,255,.5); min-width:100px; font-size:12px; }
+.cred-val { color:#fff; font-weight:700; font-family:monospace; flex:1; word-break:break-all; }
+.copy-btn {
+  background:rgba(255,255,255,.12); border:none; border-radius:6px;
+  color:#fff; padding:3px 8px; font-size:11px; cursor:pointer;
+  transition:background .15s; flex-shrink:0;
+}
+.copy-btn:hover { background:rgba(255,255,255,.25); }
+.order-card-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 18px; border-top:1.5px solid var(--border);
+}
+.order-time { font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.order-price { font-size:16px; font-weight:900; color:var(--primary); }
+.empty-state {
+  text-align:center; padding:60px 20px;
+  background:#fff; border:1.5px solid var(--border); border-radius:18px;
+}
+.empty-icon { font-size:56px; margin-bottom:16px; }
+.empty-state h3 { font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.empty-state p { font-size:13px; color:var(--text-muted); }
+@media (max-width:600px) {
+  .lsm-stats { grid-template-columns:1fr; gap:10px; }
+  .order-card-header { padding:10px 14px; }
+  .order-card-body { padding:12px 14px; }
+  .cred-lbl { min-width:80px; }
+}
+</style>
+
+<script>
+function copyText(id) {
+  const text = document.getElementById(id)?.textContent?.trim();
+  if (!text || text === '—') return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  });
+}
+</script>

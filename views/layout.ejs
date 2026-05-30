@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' – SHOPMEBU.VN' : 'SHOPMEBU.VN – Mua Bán Acc VPlay Uy Tín' %></title>
+  <meta name="description" content="<%= typeof desc !== 'undefined' ? desc : 'Shop acc VPlay uy tín – Huyền Ảnh Võ Lâm, Giang Hồ Kỳ Ngộ. Giao dịch tự động 24/7.' %>">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <%- include('partials/header') %>
+
+  <main class="site-content">
+    <%- body %>
+  </main>
+
+  <%- include('partials/footer') %>
+
+  <!-- JS -->
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<%# ===== DANH MỤC GAME ===== %>
+<%
+  const gameFallbackThumbs = [
+    'https://play-lh.googleusercontent.com/556FIxsnMJWgLOOSTgAbL1ceIynb3xQv6vjL_7hBTOpaiZaX1yxk21YEefZo4q7K=w1052-h592',
+    'https://play-lh.googleusercontent.com/e1r-JdALc5NcU_YwYHAyLzfSk3OsX6JC9yYb_D7KVOnJs04ML0lhUuob0GE1ze_4IJM=w1052-h592',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page3.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/img-slide.png',
+    'https://play-lh.googleusercontent.com/EkeG-CnfqSe8Nq50orgfa1qFBpUDtI4ya8Z1lw1BjBeo6JdIqCpYDO7B5kaR3k41DI3R=w1052-h592',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page1.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page4.jpg',
+    'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592'
+  ];
+  const gameFallbackThumb = id => gameFallbackThumbs[Number(id || 0) % gameFallbackThumbs.length];
+%>
+
+<div class="game-page">
+  <div class="container">
+
+    <%# ── BREADCRUMB ── %>
+    <nav class="breadcrumb">
+      <a href="/"><i class="fas fa-home"></i> Trang Chủ</a>
+      <i class="fas fa-chevron-right"></i>
+      <span><%= category.icon %> <%= category.name %></span>
+    </nav>
+
+    <%# ── FLASH ── %>
+    <% if (error_msg && error_msg.length > 0) { %>
+      <div class="flash flash-error"><i class="fas fa-exclamation-circle"></i> <%= error_msg[0] %></div>
+    <% } %>
+
+    <h1 class="page-title"><%= category.icon %> <%= category.name %></h1>
+    <p class="page-sub"><%= total %> acc đang có sẵn</p>
+
+    <%# ── FILTER BAR ── %>
+    <form class="filter-bar" method="GET" action="/game/<%= category.slug %>">
+      <div class="filter-group">
+        <label>Rank:</label>
+        <select name="rank">
+          <option value="">Tất cả rank</option>
+          <% ranks.forEach(r => { %>
+            <option value="<%= r %>" <%= filters.rank === r ? 'selected' : '' %>><%= r %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Giá từ:</label>
+        <input type="number" name="min_price" value="<%= filters.minPrice || '' %>" placeholder="0đ" min="0" step="1000">
+      </div>
+      <div class="filter-group">
+        <label>Đến:</label>
+        <input type="number" name="max_price" value="<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>" placeholder="Không giới hạn" min="0" step="1000">
+      </div>
+      <div class="filter-group">
+        <label>Sắp xếp:</label>
+        <select name="sort">
+          <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Mới nhất</option>
+          <option value="price_asc" <%= filters.sort === 'price_asc' ? 'selected' : '' %>>Giá tăng dần</option>
+          <option value="price_desc" <%= filters.sort === 'price_desc' ? 'selected' : '' %>>Giá giảm dần</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Lọc</button>
+      <a href="/game/<%= category.slug %>" class="btn-reset">Reset</a>
+    </form>
+
+    <%# ── ACC TYPES TABS ── %>
+    <% if (accTypes && accTypes.length > 0) { %>
+    <div class="acc-type-tabs">
+      <a href="/game/<%= category.slug %>" class="tab-btn <%= !filters.type ? 'active' : '' %>">Tất Cả</a>
+      <% accTypes.forEach(t => { %>
+        <a href="/game/<%= category.slug %>?type=<%= t.slug %>" class="tab-btn <%= filters.type === t.slug ? 'active' : '' %>"><%= t.name %></a>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <%# ── ACC GRID ── %>
+    <% if (accounts && accounts.length > 0) { %>
+    <div class="acc-grid">
+      <% accounts.forEach(acc => { %>
+      <div class="acc-card" onclick="location.href='/game/<%= category.slug %>/<%= acc.id %>'">
+        <div class="acc-thumb">
+          <% if (acc.thumb) { %>
+            <img src="<%= acc.thumb %>" alt="<%= acc.rank %>" loading="lazy" onerror="this.src='<%= gameFallbackThumb(acc.id) %>'">
+          <% } else { %>
+            <img src="<%= gameFallbackThumb(acc.id) %>" alt="Acc #<%= acc.id %>" loading="lazy">
+          <% } %>
+          <span class="acc-badge">ATM</span>
+          <% if (user && (user.role === 'admin' || user.role === 'superadmin')) { %>
+          <div class="admin-card-actions" onclick="event.stopPropagation()">
+            <a href="/admin/acc/sua/<%= acc.id %>" class="admin-card-btn edit" title="Sửa"><i class="fas fa-pen"></i></a>
+            <form action="/admin/acc/xoa/<%= acc.id %>" method="POST" onsubmit="return confirm('Xóa acc #<%= acc.id %>?')" style="display:inline">
+              <button type="submit" class="admin-card-btn delete" title="Xóa"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+          <% } %>
+        </div>
+        <div class="acc-info">
+          <div class="acc-id">#<%= acc.id %></div>
+          <h3 class="acc-rank"><%= acc.rank || 'Chưa xác định' %></h3>
+          <div class="acc-stats">
+            <% if (acc.so_tuong > 0) { %><span title="Số tướng"><i class="fas fa-user-ninja"></i> <%= acc.so_tuong %></span><% } %>
+            <% if (acc.trang_phuc > 0) { %><span title="Trang phục"><i class="fas fa-tshirt"></i> <%= acc.trang_phuc %></span><% } %>
+            <% if (acc.ngoc > 0) { %><span title="Số ngọc"><i class="fas fa-gem"></i> <%= acc.ngoc %></span><% } %>
+          </div>
+          <div class="acc-footer">
+            <span class="acc-price"><%= Number(acc.price).toLocaleString('vi-VN') %>đ</span>
+            <button class="btn-buy-quick" onclick="event.stopPropagation(); buyAcc(<%= acc.id %>)">
+              <i class="fas fa-cart-plus"></i> Mua
+            </button>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <%# ── PAGINATION ── %>
+    <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% if (currentPage > 1) { %>
+        <a href="?page=<%= currentPage-1 %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+      <% } %>
+      <% for (let p = Math.max(1, currentPage-2); p <= Math.min(totalPages, currentPage+2); p++) { %>
+        <a href="?page=<%= p %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+      <% } %>
+      <% if (currentPage < totalPages) { %>
+        <a href="?page=<%= currentPage+1 %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+      <% } %>
+    </div>
+    <% } %>
+
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-box-open"></i>
+      <h3>Không tìm thấy acc nào</h3>
+      <p>Thử thay đổi bộ lọc hoặc <a href="/game/<%= category.slug %>">xem tất cả</a></p>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<%# ── BUY MODAL ── %>
+<div class="modal-overlay" id="buyModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fas fa-shopping-cart"></i> Xác Nhận Mua Acc</h3>
+      <button onclick="closeBuyModal()" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="buyModalBody"><p>Đang tải...</p></div>
+  </div>
+</div>
+
+<style>
+.game-page { padding: 20px 0 60px; }
+.page-title { font-size: 1.8rem; color: #fff; margin-bottom: 4px; }
+.page-sub { color: #888; margin-bottom: 20px; }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: flex-end;
+  background: var(--card-bg);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group label { color: #aaa; font-size: 0.78rem; }
+.filter-group select,
+.filter-group input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  outline: none;
+}
+.btn-filter {
+  background: var(--primary);
+  color: #fff; border: none;
+  padding: 8px 20px; border-radius: 7px;
+  cursor: pointer; font-size: 0.9rem;
+  align-self: flex-end;
+}
+.btn-reset {
+  color: #aaa;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  align-self: flex-end;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+}
+
+.acc-type-tabs {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+  color: #aaa;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+.tab-btn:hover, .tab-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.acc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.acc-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.acc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(108,99,255,0.3);
+  border-color: var(--primary);
+}
+.acc-thumb { position: relative; overflow: hidden; height: 150px; }
+.acc-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.acc-card:hover .acc-thumb img { transform: scale(1.05); }
+.acc-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--accent); color: #000;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+}
+.acc-info { padding: 12px; }
+.admin-card-actions {
+  position: absolute; bottom: 6px; left: 6px;
+  display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s;
+}
+.acc-card:hover .admin-card-actions { opacity: 1; }
+.admin-card-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px;
+  font-size: 0.75rem; border: none; cursor: pointer; text-decoration: none;
+}
+.admin-card-btn.edit { background: rgba(52,152,219,0.9); color: #fff; }
+.admin-card-btn.delete { background: rgba(231,76,60,0.9); color: #fff; }
+.admin-card-btn:hover { opacity: 0.85; }
+.acc-id { color: #555; font-size: 0.72rem; margin-bottom: 3px; }
+.acc-rank { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.acc-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.acc-stats span { font-size: 0.75rem; color: #aaa; }
+.acc-footer { display: flex; align-items: center; justify-content: space-between; }
+.acc-price { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.btn-buy-quick {
+  background: var(--primary); color: #fff; border: none;
+  padding: 5px 12px; border-radius: 6px; font-size: 0.8rem;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-buy-quick:hover { background: #5a52d5; }
+
+.pagination {
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+}
+.page-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #aaa;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+.page-btn:hover, .page-btn.active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: #555;
+}
+.empty-state i { font-size: 4rem; margin-bottom: 16px; display: block; }
+.empty-state h3 { color: #888; margin-bottom: 8px; }
+.empty-state a { color: var(--primary); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.modal-box {
+  background: var(--card-bg); border-radius: 12px;
+  border: 1px solid var(--primary); width: 90%; max-width: 480px; overflow: hidden;
+}
+.modal-header {
+  background: var(--primary); padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h3 { margin: 0; font-size: 1rem; color: #fff; }
+.modal-close { background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; }
+.modal-body { padding: 24px; }
+.cred-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.05);
+  padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;
+}
+.cred-item label { color: #aaa; font-size: 0.8rem; width: 100px; flex-shrink: 0; }
+.cred-value { color: var(--accent); font-weight: 700; font-family: monospace; flex: 1; font-size: 1rem; }
+.btn-copy {
+  background: rgba(108,99,255,0.2); color: var(--primary);
+  border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer;
+}
+</style>
+
+<script>
+function buyAcc(accId) {
+  <% if (!user) { %>
+    window.location.href = '/dang-nhap?returnUrl=' + encodeURIComponent(window.location.pathname);
+    return;
+  <% } %>
+  document.getElementById('buyModal').style.display = 'flex';
+  document.getElementById('buyModalBody').innerHTML = '<div style="text-align:center;padding:30px"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+  fetch('/api/buy/' + accId, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('buyModalBody').innerHTML = `
+          <div style="text-align:center;margin-bottom:16px">
+            <i class="fas fa-check-circle" style="color:#2ecc71;font-size:3rem"></i>
+            <h3 style="color:#2ecc71;margin:10px 0">Mua Thành Công! 🎉</h3>
+          </div>
+          <div>
+            <div class="cred-item">
+              <label>Tên đăng nhập:</label>
+              <span class="cred-value">${data.order.acc_username}</span>
+              <button onclick="navigator.clipboard.writeText('${data.order.acc_username}').then(()=>alert('Đã sao chép!'))" class="btn-copy"><i class="fas fa-copy"></i></button>
+            </div>
+            <div class="cred-item">
+              <label>Mật khẩu:</label>
+              <span class="cred-value">${data.order.acc_password}</span>
+              <button onclick="navigator.clipboard.writeText('${data.order.acc_password}').then(()=>alert('Đã sao chép!'))" class="btn-copy"><i class="fas fa-copy"></i></button>
+            </div>
+            ${data.order.acc_info ? `<div class="cred-item"><label>Thông tin:</label><span style="color:#ccc;font-size:0.85rem">${data.order.acc_info}</span></div>` : ''}
+          </div>
+          <p style="color:var(--accent);font-weight:700;margin-top:12px">Số dư còn lại: ${Number(data.new_balance).toLocaleString('vi-VN')}đ</p>
+          <p style="color:#aaa;font-size:0.82rem"><i class="fas fa-info-circle"></i> Xem lại tại <a href="/tai-khoan" style="color:var(--primary)">Tài khoản</a></p>
+        `;
+        const balEl = document.getElementById('headerBalance');
+        if (balEl) balEl.textContent = Number(data.new_balance).toLocaleString('vi-VN') + 'đ';
+      } else {
+        document.getElementById('buyModalBody').innerHTML = `
+          <div style="text-align:center">
+            <i class="fas fa-times-circle" style="color:#e74c3c;font-size:3rem"></i>
+            <p style="color:#e74c3c;margin:12px 0;font-size:1rem">${data.message}</p>
+            ${data.redirect ? `<a href="${data.redirect}" class="btn-filter" style="display:inline-block;text-decoration:none">Nạp Tiền Ngay</a>` : ''}
+          </div>
+        `;
+      }
+    });
+}
+function closeBuyModal() {
+  document.getElementById('buyModal').style.display = 'none';
+}
+document.getElementById('buyModal')?.addEventListener('click', e => {
+  if (e.target.id === 'buyModal') closeBuyModal();
+});
+</script>

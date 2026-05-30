@@ -1,0 +1,31 @@
+<div class="info-page" style="max-width:980px;margin:26px auto 70px;padding:0 16px;">
+  <nav class="breadcrumb" style="margin-bottom:18px;">
+    <a href="/">🏠 Trang chủ</a>
+    <span style="color:var(--text-muted);">/</span>
+    <span><%= title %></span>
+  </nav>
+
+  <section style="background:#fff;border:1.5px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);">
+    <div style="background:linear-gradient(135deg,#8b0000,var(--primary));padding:34px 28px;color:#fff;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-20px;top:-28px;font-size:130px;opacity:.12;"><%= icon %></div>
+      <div style="font-size:34px;margin-bottom:8px;"><%= icon %></div>
+      <h1 style="font-size:30px;margin:0 0 8px;font-weight:900;"><%= heading %></h1>
+      <p style="margin:0;color:rgba(255,255,255,.78);font-weight:600;">Mua bán acc VPlay uy tín, giao dịch tự động 24/7</p>
+    </div>
+
+    <div style="padding:26px 28px;">
+      <% paragraphs.forEach(text => { %>
+        <p style="font-size:14px;line-height:1.8;color:var(--text);margin:0 0 14px;"><%= text %></p>
+      <% }) %>
+
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;">
+        <% actions.forEach(a => { %>
+          <a href="<%= a.href %>" <%= a.external ? 'target="_blank" rel="noopener"' : '' %>
+             class="btn btn-primary" style="border-radius:999px;padding:12px 22px;">
+            <%= a.label %>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+</div>

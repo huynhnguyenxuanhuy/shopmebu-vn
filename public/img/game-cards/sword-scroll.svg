@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="Sword scroll account">
+  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#300000"/><stop offset=".55" stop-color="#b10d0d"/><stop offset="1" stop-color="#241200"/></linearGradient></defs>
+  <rect width="600" height="360" fill="url(#b)"/>
+  <circle cx="470" cy="62" r="132" fill="#ffd15a" opacity=".22"/>
+  <path d="M70 260c88-44 170-40 250-10s150 30 210-10v120H70z" fill="#120101" opacity=".46"/>
+  <g transform="translate(112 58)">
+    <rect x="48" y="28" width="272" height="194" rx="22" fill="#fff1c4"/>
+    <rect x="27" y="28" width="64" height="194" rx="28" fill="#e9c169"/>
+    <rect x="276" y="28" width="64" height="194" rx="28" fill="#d19a39"/>
+    <path d="M96 78h160M96 115h128M96 152h178" stroke="#7b1d13" stroke-width="9" stroke-linecap="round" opacity=".55"/>
+    <path d="M36 252L332 8l18 20L54 272z" fill="#f8d16e"/>
+    <path d="M312 0l54 52-28 18-44-44z" fill="#f7f1d8"/>
+    <path d="M28 250l34 36-54 26z" fill="#2a0606"/>
+  </g>
+  <text x="30" y="54" fill="#ffd15a" font-size="26" font-family="Arial Black, Arial">100K</text>
+  <text x="30" y="82" fill="#fff" fill-opacity=".78" font-size="18" font-family="Arial">Trang thong tin</text>
+</svg>

@@ -1,0 +1,33 @@
+{
+  "name": "shopmebu",
+  "version": "1.0.0",
+  "description": "SHOPMEBU.VN – Shop Acc Game VPlay Uy Tín",
+  "main": "app.js",
+  "scripts": {
+    "start":     "node app.js",
+    "dev":       "nodemon app.js",
+    "start:pm2": "pm2 start app.js --name shopmebu",
+    "check:deploy": "node scripts/check-deploy.js",
+    "check:syntax": "node --check app.js && find routes config middleware utils scripts -name '*.js' -print0 | xargs -0 -n1 node --check"
+  },
+  "dependencies": {
+    "connect-flash":          "^0.1.1",
+    "dotenv":                 "^16.4.5",
+    "ejs":                    "^3.1.10",
+    "express":                "^4.19.2",
+    "express-ejs-layouts":    "^2.5.1",
+    "express-session":        "^1.18.0",
+    "mysql2":                 "^3.10.0",
+    "bcryptjs":               "^2.4.3",
+    "multer":                 "^1.4.5-lts.1",
+    "passport":               "^0.7.0",
+    "passport-google-oauth20":"^2.0.0",
+    "passport-facebook":      "^3.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

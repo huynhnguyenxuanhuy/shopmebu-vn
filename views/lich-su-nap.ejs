@@ -1,0 +1,194 @@
+<%# ===== TRANG LỊCH SỬ NẠP TIỀN / GIAO DỊCH ===== %>
+
+<div class="breadcrumb">
+  <a href="/">🏠 Trang chủ</a>
+  <i class="fas fa-chevron-right"></i>
+  <a href="/tai-khoan">Tài khoản</a>
+  <i class="fas fa-chevron-right"></i>
+  <span>Lịch Sử Giao Dịch</span>
+</div>
+
+<%# SUMMARY %>
+<div class="lsn-summary">
+  <div class="lsn-sum-card lsn-green">
+    <div class="lsn-sum-icon">💳</div>
+    <div>
+      <div class="lsn-sum-label">Tổng Đã Nạp</div>
+      <div class="lsn-sum-value"><%= Number(summary.total_deposit||0).toLocaleString('vi-VN') %>đ</div>
+    </div>
+  </div>
+  <div class="lsn-sum-card lsn-red">
+    <div class="lsn-sum-icon">🛒</div>
+    <div>
+      <div class="lsn-sum-label">Tổng Đã Chi</div>
+      <div class="lsn-sum-value"><%= Number(summary.total_purchase||0).toLocaleString('vi-VN') %>đ</div>
+    </div>
+  </div>
+  <div class="lsn-sum-card lsn-blue">
+    <div class="lsn-sum-icon">💰</div>
+    <div>
+      <div class="lsn-sum-label">Số Dư Còn Lại</div>
+      <div class="lsn-sum-value"><%= Number(userBalance||0).toLocaleString('vi-VN') %>đ</div>
+    </div>
+  </div>
+</div>
+
+<%# FILTER TABS %>
+<div class="lsn-tabs">
+  <a href="/lich-su-nap?type=all"
+     class="lsn-tab <%= filter==='all' ? 'active' : '' %>">
+    📋 Tất Cả (<%= total %>)
+  </a>
+  <a href="/lich-su-nap?type=deposit"
+     class="lsn-tab <%= filter==='deposit' ? 'active' : '' %>">
+    💳 Nạp Tiền
+  </a>
+  <a href="/lich-su-nap?type=purchase"
+     class="lsn-tab <%= filter==='purchase' ? 'active' : '' %>">
+    🛒 Mua Hàng
+  </a>
+</div>
+
+<%# TRANSACTION LIST %>
+<% if (transactions.length === 0) { %>
+  <div class="empty-state">
+    <div class="empty-icon">💳</div>
+    <h3>Chưa có giao dịch nào</h3>
+    <p>Nạp tiền để bắt đầu mua acc game ngay!</p>
+    <a href="/nap-tien" class="btn btn-primary" style="margin-top:16px;">💳 Nạp Tiền Ngay</a>
+  </div>
+<% } else { %>
+  <div class="txn-list">
+    <% transactions.forEach(t => { %>
+    <div class="txn-row">
+      <div class="txn-icon txn-<%= t.type %>">
+        <% if (t.type === 'deposit')  { %>💳<% } %>
+        <% if (t.type === 'purchase') { %>🛒<% } %>
+        <% if (t.type === 'refund')   { %>↩️<% } %>
+      </div>
+      <div class="txn-info">
+        <div class="txn-title">
+          <% if (t.type === 'deposit')  { %>Nạp tiền<% } %>
+          <% if (t.type === 'purchase') { %>Mua tài khoản game<% } %>
+          <% if (t.type === 'refund')   { %>Hoàn tiền<% } %>
+          <% if (t.note) { %>
+            <span class="txn-note">— <%= t.note %></span>
+          <% } %>
+        </div>
+        <div class="txn-meta">
+          <% if (t.payment_method) { %>
+            <span class="txn-method"><%= t.payment_method.toUpperCase() %></span>
+          <% } %>
+          <% if (t.transfer_content) { %>
+            <span class="txn-ref">🔖 <%= t.transfer_content %></span>
+          <% } %>
+          <span class="txn-time"><i class="fas fa-clock"></i> <%= new Date(t.created_at).toLocaleString('vi-VN') %></span>
+        </div>
+      </div>
+      <div class="txn-right">
+        <div class="txn-amount txn-amt-<%= t.type %>">
+          <%= t.type === 'deposit' ? '+' : (t.type === 'refund' ? '+' : '-') %><%= Number(t.amount).toLocaleString('vi-VN') %>đ
+        </div>
+        <div class="txn-balance">Số dư: <%= Number(t.balance_after||0).toLocaleString('vi-VN') %>đ</div>
+        <span class="status-badge txn-status
+          <%= t.status==='success' ? 'status-success' : (t.status==='failed' ? 'status-fail' : 'status-pending') %>">
+          <% if (t.status==='success') { %>✅ Thành công
+          <% } else if (t.status==='failed') { %>❌ Thất bại
+          <% } else { %>⏳ Chờ xử lý<% } %>
+        </span>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <%# PAGINATION %>
+  <% if (totalPages > 1) { %>
+  <div class="pagination" style="margin-top:24px;">
+    <% if (currentPage > 1) { %><a href="?page=<%= currentPage-1 %>&type=<%= filter %>">‹</a><% } %>
+    <% for (let i=1; i<=totalPages; i++) { %>
+      <% if (i===currentPage) { %><span class="active"><%=i%></span>
+      <% } else { %><a href="?page=<%=i%>&type=<%=filter%>"><%=i%></a><% } %>
+    <% } %>
+    <% if (currentPage < totalPages) { %><a href="?page=<%= currentPage+1 %>&type=<%= filter %>">›</a><% } %>
+  </div>
+  <% } %>
+<% } %>
+
+<style>
+.lsn-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+.lsn-sum-card {
+  background:#fff; border:1.5px solid var(--border); border-radius:14px;
+  padding:16px 18px; display:flex; align-items:center; gap:14px;
+  position:relative; overflow:hidden;
+}
+.lsn-sum-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.lsn-green::before { background:linear-gradient(90deg,#00c853,#69f0ae); }
+.lsn-red::before   { background:linear-gradient(90deg,var(--primary),var(--accent)); }
+.lsn-blue::before  { background:linear-gradient(90deg,#2196f3,#64b5f6); }
+.lsn-sum-icon { font-size:26px; }
+.lsn-sum-label { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+.lsn-sum-value { font-size:18px; font-weight:900; color:var(--text); }
+
+.lsn-tabs {
+  display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;
+  border-bottom:2px solid var(--border); padding-bottom:0;
+}
+.lsn-tab {
+  padding:10px 20px; font-size:13px; font-weight:700;
+  color:var(--text-muted); border-bottom:3px solid transparent;
+  margin-bottom:-2px; transition:all .2s; cursor:pointer;
+}
+.lsn-tab:hover { color:var(--primary); }
+.lsn-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+
+.txn-list { display:flex; flex-direction:column; gap:0; }
+.txn-row {
+  display:flex; align-items:center; gap:14px; padding:14px 18px;
+  background:#fff; border:1.5px solid var(--border); border-radius:0; margin-bottom:-1px;
+  transition:all .15s;
+}
+.txn-row:first-child { border-radius:14px 14px 0 0; }
+.txn-row:last-child  { border-radius:0 0 14px 14px; margin-bottom:0; }
+.txn-row:only-child  { border-radius:14px; }
+.txn-row:hover { background:var(--primary-light); z-index:1; position:relative; border-color:var(--primary); }
+.txn-icon {
+  width:42px; height:42px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.txn-deposit  { background:#e8faf2; }
+.txn-purchase { background:var(--primary-light); }
+.txn-refund   { background:#e3f2fd; }
+.txn-info { flex:1; min-width:0; }
+.txn-title { font-size:13.5px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.txn-note { font-weight:400; color:var(--text-muted); font-size:12px; }
+.txn-meta { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:11.5px; }
+.txn-method {
+  background:var(--primary-light); color:var(--primary);
+  padding:2px 8px; border-radius:6px; font-weight:700; font-size:10.5px;
+}
+.txn-ref { color:var(--text-muted); }
+.txn-time { color:var(--text-light); display:flex; align-items:center; gap:4px; }
+.txn-right { text-align:right; flex-shrink:0; }
+.txn-amount { font-size:16px; font-weight:900; }
+.txn-amt-deposit  { color:var(--green); }
+.txn-amt-purchase { color:var(--primary); }
+.txn-amt-refund   { color:#2196f3; }
+.txn-balance { font-size:11px; color:var(--text-muted); margin:2px 0 4px; }
+.txn-status { font-size:10.5px; }
+
+.empty-state {
+  text-align:center; padding:60px 20px;
+  background:#fff; border:1.5px solid var(--border); border-radius:18px;
+}
+.empty-icon { font-size:56px; margin-bottom:16px; }
+.empty-state h3 { font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.empty-state p { font-size:13px; color:var(--text-muted); }
+
+@media (max-width:600px) {
+  .lsn-summary { grid-template-columns:1fr; gap:8px; }
+  .txn-row { padding:12px 14px; gap:10px; }
+  .txn-icon { width:36px; height:36px; font-size:15px; border-radius:10px; }
+  .txn-amount { font-size:14px; }
+  .txn-ref { display:none; }
+}
+</style>

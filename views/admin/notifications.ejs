@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gửi Thông Báo – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>🔔 Gửi Thông Báo</h1>
+    </div>
+    <div class="admin-content">
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+        <div class="admin-card">
+          <div class="admin-card-header"><h3>📣 Nội Dung</h3></div>
+          <div class="admin-card-body">
+            <form method="POST" action="/admin/notifications" class="admin-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Gửi tới</label>
+                  <select name="target" id="targetSelect" onchange="toggleTargetUser()">
+                    <option value="all">Tất cả user</option>
+                    <option value="one">Một user</option>
+                  </select>
+                </div>
+                <div class="form-group" id="usernameGroup" style="display:none;">
+                  <label>Username / Email</label>
+                  <input type="text" name="username" placeholder="Nhập username hoặc email">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Loại</label>
+                  <select name="type">
+                    <option value="system">Hệ thống</option>
+                    <option value="promo">Khuyến mãi</option>
+                    <option value="deposit">Nạp tiền</option>
+                    <option value="order">Đơn hàng</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Link (tùy chọn)</label>
+                  <input type="text" name="link" placeholder="/nap-tien">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Tiêu đề *</label>
+                <input type="text" name="title" required placeholder="VD: Khuyến mãi nạp tiền hôm nay">
+              </div>
+
+              <div class="form-group">
+                <label>Nội dung *</label>
+                <textarea name="message" required placeholder="Nhập nội dung thông báo..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;">📨 Gửi Thông Báo</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-header"><h3>🕒 Gần Đây</h3></div>
+          <div class="admin-card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr><th>User</th><th>Tiêu đề</th><th>Ngày</th></tr>
+                </thead>
+                <tbody>
+                  <% if (recent && recent.length > 0) { %>
+                    <% recent.forEach(n => { %>
+                    <tr>
+                      <td><%= n.username %></td>
+                      <td>
+                        <div style="font-weight:700;font-size:13px;"><%= n.title %></div>
+                        <div style="font-size:11px;color:var(--text-muted);"><%= (n.message || '').substring(0,60) %><%= (n.message || '').length>60?'...':'' %></div>
+                      </td>
+                      <td style="font-size:11px;color:var(--text-muted);"><%= new Date(n.created_at).toLocaleDateString('vi-VN') %></td>
+                    </tr>
+                    <% }) %>
+                  <% } else { %>
+                    <tr><td colspan="3" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có thông báo</td></tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTargetUser() {
+  const target = document.getElementById('targetSelect').value;
+  document.getElementById('usernameGroup').style.display = target === 'one' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<%# ===== TRANG CHỦ – SHOPMEBU.VN ===== %>
+
+<%# ── FLASH MESSAGES ── %>
+<% if (success_msg && success_msg.length > 0) { %>
+  <div class="flash flash-success"><i class="fas fa-check-circle"></i> <%= success_msg[0] %></div>
+<% } %>
+<% if (error_msg && error_msg.length > 0) { %>
+  <div class="flash flash-error"><i class="fas fa-exclamation-circle"></i> <%= error_msg[0] %></div>
+<% } %>
+
+<%
+  const accFallbackImages = [
+    'https://play-lh.googleusercontent.com/556FIxsnMJWgLOOSTgAbL1ceIynb3xQv6vjL_7hBTOpaiZaX1yxk21YEefZo4q7K=w1052-h592',
+    'https://play-lh.googleusercontent.com/e1r-JdALc5NcU_YwYHAyLzfSk3OsX6JC9yYb_D7KVOnJs04ML0lhUuob0GE1ze_4IJM=w1052-h592',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page3.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/img-slide.png',
+    'https://play-lh.googleusercontent.com/EkeG-CnfqSe8Nq50orgfa1qFBpUDtI4ya8Z1lw1BjBeo6JdIqCpYDO7B5kaR3k41DI3R=w1052-h592',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page1.jpg',
+    'https://gianghokyngo.vplay.vn/home/img/bg-page4.jpg',
+    'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592'
+  ];
+  const accFallbackImage = (id = 0, offset = 0) => accFallbackImages[(Number(id) + offset) % accFallbackImages.length];
+  const siteContent = typeof content !== 'undefined' && content ? content : {};
+  const heroSubtitle = String(siteContent.hero_subtitle || 'Kho acc khổng lồ · Thanh toán tự động · Nhận acc ngay lập tức\nHuyền Ảnh Võ Lâm · Giang Hồ Kỳ Ngộ · Nhiều game VPlay khác').split(/\r?\n/);
+%>
+
+<%# ── HERO BANNER ── %>
+<div class="hero-banner">
+  <%
+    const heroImgs = [
+      'https://play-lh.googleusercontent.com/556FIxsnMJWgLOOSTgAbL1ceIynb3xQv6vjL_7hBTOpaiZaX1yxk21YEefZo4q7K=w1052-h592',
+      'https://gianghokyngo.vplay.vn/home/img/bg-page1.jpg',
+    ];
+    const bannerSrc = (banners && banners.length > 0) ? String(banners[0].image_url || '') : '';
+    const heroSrc = bannerSrc && !bannerSrc.includes('picsum.photos') ? bannerSrc : heroImgs[0];
+  %>
+  <img src="<%= heroSrc %>" alt="SHOPMEBU.VN Banner" id="heroBg" onerror="this.src='/img/game-cards/hero-wuxia.svg'">
+  <div class="hero-overlay">
+    <div class="hero-content">
+      <div class="hero-badge"><%= siteContent.hero_badge || '⚡ Tự Động 24/7 • Giao Ngay Sau Khi Mua' %></div>
+      <h1 class="hero-title"><%= siteContent.hero_title || 'Mua Bán Acc VPlay' %><br><span><%= siteContent.hero_highlight || 'Uy Tín – Nhanh – Rẻ' %></span></h1>
+      <p class="hero-sub">
+        <% heroSubtitle.forEach((line, index) => { %>
+          <%= line %><% if (index < heroSubtitle.length - 1) { %><br><% } %>
+        <% }) %>
+      </p>
+      <div class="hero-cta">
+        <a href="<%= siteContent.hero_primary_url || '/game/huyen-anh-vo-lam' %>" class="btn btn-primary"><%= siteContent.hero_primary_label || '⚔️ Mua Acc Ngay' %></a>
+        <a href="<%= siteContent.hero_secondary_url || '/nap-tien' %>" class="btn btn-outline" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.5);"><%= siteContent.hero_secondary_label || '💳 Nạp Tiền' %></a>
+      </div>
+    </div>
+  </div>
+  <%# Banner dots nếu có nhiều banner %>
+  <% if (banners && banners.length > 1) { %>
+  <div style="position:absolute;bottom:16px;right:20px;display:flex;gap:6px;">
+    <% banners.forEach((b,i) => { %>
+    <div onclick="goSlide(<%= i %>)" id="dot-<%= i %>"
+         style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,<%= i===0?'1':'.45' %>);cursor:pointer;transition:.2s;"></div>
+    <% }) %>
+  </div>
+  <% } %>
+</div>
+
+<%# ── STATS BAR ── %>
+<div class="stats-bar">
+  <div class="stats-card">
+    <div class="stats-icon">⚔️</div>
+    <div>
+      <div class="stats-label">Tổng Acc Kho</div>
+      <div class="stats-value" id="totalAcc">
+        <%= typeof totalAcc !== 'undefined' ? Number(totalAcc).toLocaleString('vi-VN') : '0' %>
+      </div>
+    </div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-icon">✅</div>
+    <div>
+      <div class="stats-label">Đã Bán Thành Công</div>
+      <div class="stats-value" id="soldAcc">
+        <%= typeof soldCount !== 'undefined' ? Number(soldCount).toLocaleString('vi-VN') : '0' %>
+      </div>
+    </div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-icon">👥</div>
+    <div>
+      <div class="stats-label">Người Dùng Online</div>
+      <div class="stats-value" id="onlineCount">--</div>
+    </div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-icon">⭐</div>
+    <div>
+      <div class="stats-label">Đánh Giá Trung Bình</div>
+      <div class="stats-value">4.9/5</div>
+    </div>
+  </div>
+</div>
+
+<%# ── LAYOUT: 3 cột left | center | right ── %>
+<div style="display:grid;grid-template-columns:260px 1fr 280px;gap:22px;align-items:start;">
+
+  <%# ─── LEFT: TOP 5 + LIVE FEED ─── %>
+  <div>
+    <%# TOP 5 NẠP TIỀN %>
+    <div class="top5-section" style="margin-bottom:18px;">
+      <div class="top5-header">
+        <h2><i class="fas fa-crown" style="color:#fff;"></i> Top Nạp Tháng Này</h2>
+      </div>
+      <div class="top5-body">
+        <%
+          const top5Display = (top5 && top5.length > 0) ? top5 : [
+            { username: 'shopmebu', total: 2850000 },
+            { username: 'Tr***ng',  total: 1500000 },
+            { username: 'Ng***nh',  total: 980000  },
+            { username: 'Ph***n',   total: 750000  },
+            { username: 'Le***i',   total: 420000  }
+          ];
+        %>
+        <ul class="top5-list">
+          <% top5Display.forEach((t, i) => { %>
+          <li class="top5-item">
+            <div class="top5-rank <%= ['r1','r2','r3'][i] || '' %>">
+              <% if (i===0) { %>👑<% } else if(i===1) { %>🥈<% } else if(i===2) { %>🥉<% } else { %>#<%= i+1 %><% } %>
+            </div>
+            <div>
+              <div class="top5-name"><%= t.username %></div>
+            </div>
+            <div class="top5-amount"><%= Number(t.total).toLocaleString('vi-VN') %>đ</div>
+          </li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+
+    <%# LIVE FEED %>
+    <div class="live-feed">
+      <div class="live-feed-header">
+        <div class="live-dot"></div> Hoạt động gần đây
+      </div>
+      <div class="live-items" id="liveFeed">
+        <div class="live-item">
+          <div class="live-avatar">N</div>
+          <div>
+            <span class="live-name">Nguyễn**</span>
+            <span class="live-action"> vừa mua </span>
+            <span class="live-target">Acc VIP #1024</span>
+          </div>
+          <span class="live-pill pill-buy">Mua</span>
+          <span class="live-time">2p</span>
+        </div>
+        <div class="live-item">
+          <div class="live-avatar">T</div>
+          <div>
+            <span class="live-name">Trần**</span>
+            <span class="live-action"> nạp </span>
+            <span class="live-target">100.000đ</span>
+          </div>
+          <span class="live-pill pill-dep">Nạp</span>
+          <span class="live-time">5p</span>
+        </div>
+        <div class="live-item">
+          <div class="live-avatar">L</div>
+          <div>
+            <span class="live-name">Lê**</span>
+            <span class="live-action"> vừa mua </span>
+            <span class="live-target">Acc 50K #882</span>
+          </div>
+          <span class="live-pill pill-buy">Mua</span>
+          <span class="live-time">8p</span>
+        </div>
+        <div class="live-item">
+          <div class="live-avatar">P</div>
+          <div>
+            <span class="live-name">Phạm**</span>
+            <span class="live-action"> nạp </span>
+            <span class="live-target">200.000đ</span>
+          </div>
+          <span class="live-pill pill-dep">Nạp</span>
+          <span class="live-time">12p</span>
+        </div>
+        <div class="live-item">
+          <div class="live-avatar">H</div>
+          <div>
+            <span class="live-name">Hoàng**</span>
+            <span class="live-action"> vừa mua </span>
+            <span class="live-target">Acc Tự Chọn</span>
+          </div>
+          <span class="live-pill pill-buy">Mua</span>
+          <span class="live-time">15p</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ─── CENTER: ACC GRIDS ─── %>
+  <div>
+    <%# HUYỀN ẢNH VÕ LÂM %>
+    <% const havlAccs = (accByGame && accByGame['huyen-anh-vo-lam']) ? accByGame['huyen-anh-vo-lam'] : []; %>
+    <% if (havlAccs.length > 0 || (user && (user.role==='admin'||user.role==='superadmin'))) { %>
+    <div class="section-title">
+      <div class="section-title-icon">⚔️</div>
+      <div>
+        <h2>Huyền Ảnh Võ Lâm</h2>
+        <span>Acc hot · Đang bán</span>
+      </div>
+      <a href="/game/huyen-anh-vo-lam" class="see-all">Xem tất cả →</a>
+    </div>
+    <div class="acc-grid">
+      <% if (havlAccs.length > 0) { %>
+        <% havlAccs.forEach(acc => { %>
+        <div class="acc-card" onclick="location.href='/game/huyen-anh-vo-lam/<%= acc.id %>'" style="position:relative">
+          <% if (acc.image_url) { %>
+            <img class="acc-card-img" src="<%= acc.image_url %>" alt="Acc #<%= acc.id %>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="acc-card-img-placeholder" style="display:none;">⚔️</div>
+          <% } else { %>
+            <img class="acc-card-img" src="<%= accFallbackImage(acc.id) %>" alt="Acc #<%= acc.id %>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="acc-card-img-placeholder" style="display:none;">⚔️</div>
+          <% } %>
+          <% if (acc.rank_name) { %>
+            <div class="acc-card-badge"><%= acc.rank_name %></div>
+          <% } %>
+          <% if (user && (user.role === 'admin' || user.role === 'superadmin')) { %>
+          <div class="admin-card-actions" onclick="event.stopPropagation()">
+            <a href="/admin/acc/sua/<%= acc.id %>" class="admin-card-btn edit" title="Sửa"><i class="fas fa-pen"></i></a>
+            <form action="/admin/acc/xoa/<%= acc.id %>" method="POST" onsubmit="return confirm('Xóa acc #<%= acc.id %>?')" style="display:inline">
+              <button type="submit" class="admin-card-btn delete" title="Xóa"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+          <% } %>
+          <div class="acc-card-body">
+            <div class="acc-card-id">ID #<%= acc.id %> · <%= acc.game_name || 'HAVL' %></div>
+            <div class="acc-card-title"><%= acc.title || `Acc ${acc.rank_name || ''} #${acc.id}` %></div>
+            <div class="acc-card-footer">
+              <div class="acc-price"><%= Number(acc.price).toLocaleString('vi-VN') %>đ</div>
+              <button class="btn-buy" onclick="event.stopPropagation();buyAcc(<%= acc.id %>, '<%= (acc.title||'Acc').replace(/'/g,"") %>', <%= acc.price %>)">
+                🛒 Mua
+              </button>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      <% } else { %>
+        <% if (user && (user.role === 'admin' || user.role === 'superadmin')) { %>
+        <div style="grid-column:1/-1;text-align:center;padding:32px 16px;background:var(--bg);border:2px dashed var(--border);border-radius:16px;">
+          <div style="font-size:28px;margin-bottom:8px;">⚔️</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">Chưa có acc Huyền Ảnh Võ Lâm</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Thêm acc vào kho để hiện ra đây</div>
+          <a href="/admin/acc/them" class="btn btn-primary" style="font-size:13px;padding:8px 20px;">+ Thêm Acc Mới</a>
+        </div>
+        <% } %>
+      <% } %>
+    </div>
+    <% } %>
+
+    <%# GIANG HỒ KỲ NGỘ %>
+    <% const ghknAccs = (accByGame && accByGame['giang-ho-ky-ngo']) ? accByGame['giang-ho-ky-ngo'] : []; %>
+    <% if (ghknAccs.length > 0 || (user && (user.role==='admin'||user.role==='superadmin'))) { %>
+    <div class="section-title">
+      <div class="section-title-icon">🐉</div>
+      <div>
+        <h2>Giang Hồ Kỳ Ngộ</h2>
+        <span>Server hot · Chiến lực cao</span>
+      </div>
+      <a href="/game/giang-ho-ky-ngo" class="see-all">Xem tất cả →</a>
+    </div>
+    <div class="acc-grid">
+      <% if (ghknAccs.length > 0) { %>
+        <% ghknAccs.forEach(acc => { %>
+        <div class="acc-card" onclick="location.href='/game/giang-ho-ky-ngo/<%= acc.id %>'" style="position:relative">
+          <% if (acc.image_url) { %>
+            <img class="acc-card-img" src="<%= acc.image_url %>" alt="Acc #<%= acc.id %>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="acc-card-img-placeholder" style="display:none;">🐉</div>
+          <% } else { %>
+            <img class="acc-card-img" src="<%= accFallbackImage(acc.id, 3) %>" alt="Acc #<%= acc.id %>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="acc-card-img-placeholder" style="display:none;">🐉</div>
+          <% } %>
+          <% if (acc.rank_name) { %><div class="acc-card-badge"><%= acc.rank_name %></div><% } %>
+          <% if (user && (user.role === 'admin' || user.role === 'superadmin')) { %>
+          <div class="admin-card-actions" onclick="event.stopPropagation()">
+            <a href="/admin/acc/sua/<%= acc.id %>" class="admin-card-btn edit" title="Sửa"><i class="fas fa-pen"></i></a>
+            <form action="/admin/acc/xoa/<%= acc.id %>" method="POST" onsubmit="return confirm('Xóa acc #<%= acc.id %>?')" style="display:inline">
+              <button type="submit" class="admin-card-btn delete" title="Xóa"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+          <% } %>
+          <div class="acc-card-body">
+            <div class="acc-card-id">ID #<%= acc.id %> · GHKN</div>
+            <div class="acc-card-title"><%= acc.title || `Acc GHKN #${acc.id}` %></div>
+            <div class="acc-card-footer">
+              <div class="acc-price"><%= Number(acc.price).toLocaleString('vi-VN') %>đ</div>
+              <button class="btn-buy" onclick="event.stopPropagation();buyAcc(<%= acc.id %>, '<%= (acc.title||'Acc').replace(/'/g,"") %>', <%= acc.price %>)">🛒 Mua</button>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      <% } else { %>
+        <% if (user && (user.role === 'admin' || user.role === 'superadmin')) { %>
+        <div style="grid-column:1/-1;text-align:center;padding:32px 16px;background:var(--bg);border:2px dashed var(--border);border-radius:16px;">
+          <div style="font-size:28px;margin-bottom:8px;">🐉</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">Chưa có acc Giang Hồ Kỳ Ngộ</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Thêm acc vào kho để hiện ra đây</div>
+          <a href="/admin/acc/them" class="btn btn-primary" style="font-size:13px;padding:8px 20px;">+ Thêm Acc Mới</a>
+        </div>
+        <% } else { %>
+        <% [
+          {id:5,title:'Acc Server Mới HOT',price:80000,icon:'🐉',rank:'Hot',img:accFallbackImage(5, 3)},
+          {id:6,title:'Acc Chiến Lực Max',price:300000,icon:'🔥',rank:'VIP',img:accFallbackImage(6, 3)},
+          {id:7,title:'Acc Tự Chọn GHKN',price:120000,icon:'🌊',rank:'Tự Chọn',img:accFallbackImage(7, 3)},
+          {id:8,title:'Acc REG Mới 100%',price:30000,icon:'⭐',rank:'REG',img:accFallbackImage(8, 3)},
+        ].forEach(demo => { %>
+        <div class="acc-card" onclick="location.href='/game/giang-ho-ky-ngo'">
+          <img class="acc-card-img" src="<%= demo.img %>" alt="<%= demo.title %>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="acc-card-img-placeholder" style="display:none;"><%= demo.icon %></div>
+          <div class="acc-card-badge"><%= demo.rank %></div>
+          <div class="acc-card-body">
+            <div class="acc-card-id">GHKN · Giang Hồ Kỳ Ngộ</div>
+            <div class="acc-card-title"><%= demo.title %></div>
+            <div class="acc-card-footer">
+              <div class="acc-price"><%= demo.price.toLocaleString('vi-VN') %>đ</div>
+              <a href="/dang-nhap" class="btn-buy">🛒 Mua</a>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+        <% } %>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+
+  <%# ─── RIGHT: WHY CHOOSE ─── %>
+  <div>
+    <div class="section-title">
+      <div class="section-title-icon">🏆</div>
+      <div><h2>Tại Sao Chọn Chúng Tôi?</h2></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <% [
+        {img:accFallbackImage(0),title:'Tự Động 24/7',desc:'Hệ thống tự động giao acc ngay sau khi thanh toán, không cần chờ đợi'},
+        {img:accFallbackImage(1),title:'An Toàn 100%',desc:'Acc cam kết trắng thông tin, không bao giờ lấy lại sau khi bán'},
+        {img:accFallbackImage(2),title:'Giá Tốt Nhất',desc:'Cam kết giá rẻ nhất thị trường, thường xuyên có khuyến mãi hấp dẫn'},
+        {img:accFallbackImage(3),title:'Thanh Toán Dễ',desc:'Hỗ trợ thanh toán qua QR ngân hàng, MoMo, nhanh chóng và tiện lợi'},
+        {img:accFallbackImage(4),title:'Hỗ Trợ Nhanh',desc:'Zalo & Facebook 24/7, phản hồi trong vòng 5 phút'},
+        {img:accFallbackImage(5),title:'Uy Tín Lâu Năm',desc:'Đã phục vụ 10.000+ khách hàng, tỉ lệ hài lòng 99%'},
+      ].forEach(w => { %>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:flex-start;gap:13px;transition:all .2s;box-shadow:var(--shadow-card);"
+           onmouseover="this.style.borderColor='var(--primary)';this.style.transform='translateX(4px)'"
+           onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+        <img src="<%= w.img %>" alt="<%= w.title %>" loading="lazy"
+             style="width:50px;height:50px;border-radius:12px;object-fit:cover;flex-shrink:0;box-shadow:0 6px 16px rgba(230,21,21,.18);">
+        <div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:3px;"><%= w.title %></div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.55;"><%= w.desc %></div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <%# BANNER NẠP TIỀN %>
+    <div style="background:linear-gradient(135deg,#080808,#1b1b1b 48%,var(--primary));border-radius:16px;padding:22px;margin-top:20px;text-align:center;position:relative;overflow:hidden;box-shadow:0 16px 34px rgba(17,17,17,.22);">
+      <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.1;">💳</div>
+      <div style="font-size:32px;margin-bottom:8px;">💳</div>
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">Nạp Tiền Ngay</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-bottom:14px;">Nhanh chóng – Tự động – An toàn</div>
+      <a href="/nap-tien" style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#111;font-weight:900;font-size:13px;padding:10px 24px;border-radius:24px;box-shadow:0 4px 14px rgba(0,0,0,.25);">
+        💳 Nạp Tiền Ngay
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<%# ── MODAL MUA ACC ── %>
+<div class="modal-overlay" id="buyModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeBuyModal()">✕</button>
+    <h2>🛒 Xác Nhận Mua Acc</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin:6px 0 16px;" id="buyAccTitle">Acc #xxx</p>
+    <div style="background:var(--bg);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;">
+        <span style="color:var(--text-muted);">Giá acc</span>
+        <span style="font-weight:900;color:var(--primary);" id="buyAccPrice">0đ</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-top:1px dashed var(--border);">
+        <span style="color:var(--text-muted);">Số dư hiện tại</span>
+        <span style="font-weight:700;" id="currentBalanceDisplay">
+          <%= typeof user !== 'undefined' && user ? Number(user.balance||0).toLocaleString('vi-VN') + 'đ' : '...' %>
+        </span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="closeBuyModal()" style="flex:1;">Huỷ</button>
+      <button class="btn btn-primary" onclick="confirmBuy()" id="confirmBuyBtn" style="flex:2;">✅ Xác Nhận Mua</button>
+    </div>
+    <div id="buyResult" style="display:none;margin-top:16px;">
+      <div style="text-align:center;font-size:22px;margin-bottom:8px;">🎉</div>
+      <div style="text-align:center;font-size:15px;font-weight:800;color:var(--green);margin-bottom:12px;">Mua Thành Công!</div>
+      <div class="acc-result-box">
+        <div class="acc-result-row"><span class="lbl">Username</span><span class="val" id="resUser">---</span><button class="copy-btn" onclick="copyText(document.getElementById('resUser').textContent)">Copy</button></div>
+        <div class="acc-result-row"><span class="lbl">Password</span><span class="val" id="resPass">---</span><button class="copy-btn" onclick="copyText(document.getElementById('resPass').textContent)">Copy</button></div>
+        <div class="acc-result-row"><span class="lbl">Thông Tin</span><span class="val" id="resInfo" style="font-size:11px;word-break:break-all;">---</span></div>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:10px;">💾 Lưu lại thông tin acc. Xem lại tại <a href="/lich-su-mua" style="color:var(--primary);">Lịch Sử Mua</a></p>
+    </div>
+  </div>
+</div>
+
+<%# ── TOAST ── %>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+let currentAccId = null;
+let currentAccPrice = 0;
+
+function buyAcc(id, title, price) {
+  <% if (typeof user === 'undefined' || !user) { %>
+    showToast('Vui lòng đăng nhập để mua acc!', '#e61515');
+    setTimeout(() => location.href='/dang-nhap', 1500);
+    return;
+  <% } %>
+  currentAccId = id;
+  currentAccPrice = price;
+  document.getElementById('buyAccTitle').textContent = title + ' (#' + id + ')';
+  document.getElementById('buyAccPrice').textContent = price.toLocaleString('vi-VN') + 'đ';
+  document.getElementById('buyResult').style.display = 'none';
+  document.getElementById('confirmBuyBtn').style.display = '';
+  document.getElementById('buyModal').classList.add('active');
+}
+
+async function confirmBuy() {
+  const btn = document.getElementById('confirmBuyBtn');
+  btn.disabled = true; btn.textContent = '⏳ Đang xử lý...';
+  try {
+    const r = await fetch('/api/buy/' + currentAccId, { method:'POST' });
+    const d = await r.json();
+    if (d.success) {
+      document.getElementById('resUser').textContent = d.order.acc_username || '---';
+      document.getElementById('resPass').textContent = d.order.acc_password || '---';
+      document.getElementById('resInfo').textContent = d.order.acc_info || 'Không có thông tin thêm';
+      document.getElementById('buyResult').style.display = 'block';
+      btn.style.display = 'none';
+      if (d.new_balance !== undefined) {
+        const balEl = document.getElementById('headerBalance');
+        if (balEl) balEl.textContent = d.new_balance.toLocaleString('vi-VN');
+        document.getElementById('currentBalanceDisplay').textContent = d.new_balance.toLocaleString('vi-VN') + 'đ';
+      }
+      showToast('🎉 Mua thành công! Kiểm tra thông tin acc.', '#00c853');
+    } else {
+      showToast(d.message || 'Lỗi! Thử lại sau.', '#e61515');
+      btn.disabled = false; btn.textContent = '✅ Xác Nhận Mua';
+      if (d.redirect) setTimeout(() => location.href = d.redirect, 2000);
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối!', '#e61515');
+    btn.disabled = false; btn.textContent = '✅ Xác Nhận Mua';
+  }
+}
+
+function closeBuyModal() {
+  document.getElementById('buyModal').classList.remove('active');
+}
+
+function showToast(msg, color) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.borderLeftColor = color || 'var(--primary)';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(50px)'; setTimeout(()=>t.remove(),300); }, 3500);
+}
+
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => showToast('✅ Đã sao chép!', '#00c853'));
+}
+
+// Online count
+fetch('/api/stats/online').then(r=>r.json()).then(d => {
+  const el = document.getElementById('onlineCount');
+  if (el) el.textContent = (d.online || 0).toLocaleString('vi-VN');
+}).catch(()=>{});
+</script>

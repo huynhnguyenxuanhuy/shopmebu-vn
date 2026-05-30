@@ -1,0 +1,69 @@
+<%# Sidebar dùng chung cho tất cả trang admin %>
+<!-- Mobile overlay -->
+<div class="admin-sidebar-overlay" id="adminSidebarOverlay" onclick="toggleAdminSidebar()"></div>
+
+<script>
+function toggleAdminSidebar() {
+  const sidebar = document.getElementById('adminSidebar');
+  const overlay = document.getElementById('adminSidebarOverlay');
+  if (!sidebar) return;
+  const isOpen = sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('open', !isOpen);
+  document.body.style.overflow = isOpen ? '' : 'hidden';
+}
+</script>
+
+<div class="admin-sidebar" id="adminSidebar">
+  <div class="admin-sidebar-logo">
+    <div class="logo-text" style="background:linear-gradient(135deg,#ff6a6a,#fff,#ff6a6a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:17px;font-weight:900;">🏪 SHOPMEBU</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;">Admin Panel</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px;">
+      👤 <%= admin.username %> <span style="font-size:9px;background:rgba(230,21,21,.3);color:#ff6a6a;padding:1px 6px;border-radius:8px;margin-left:4px;"><%= admin.role %></span>
+    </div>
+  </div>
+  <nav class="admin-nav">
+    <div class="admin-nav-section">Tổng Quan</div>
+    <a href="/admin" class="admin-nav-link <%= page_name==='dashboard'?'active':'' %>">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+
+    <div class="admin-nav-section">Kho Hàng</div>
+    <a href="/admin/acc" class="admin-nav-link <%= page_name==='acc'?'active':'' %>">
+      <span class="nav-icon">🎮</span> Quản Lý Acc
+    </a>
+    <a href="/admin/acc/them" class="admin-nav-link <%= page_name==='acc-add'?'active':'' %>">
+      <span class="nav-icon">➕</span> Thêm Acc Mới
+    </a>
+
+    <div class="admin-nav-section">Người Dùng & Đơn Hàng</div>
+    <a href="/admin/users" class="admin-nav-link <%= page_name==='users'?'active':'' %>">
+      <span class="nav-icon">👥</span> Quản Lý Users
+    </a>
+    <a href="/admin/orders" class="admin-nav-link <%= page_name==='orders'?'active':'' %>">
+      <span class="nav-icon">🛒</span> Đơn Hàng
+    </a>
+    <a href="/admin/notifications" class="admin-nav-link <%= page_name==='notifications'?'active':'' %>">
+      <span class="nav-icon">🔔</span> Gửi Thông Báo
+    </a>
+
+    <div class="admin-nav-section">Tài Chính</div>
+    <a href="/admin/payments" class="admin-nav-link <%= page_name==='payments'?'active':'' %>">
+      <span class="nav-icon">💳</span> Payment Logs
+    </a>
+
+    <div class="admin-nav-section">Hệ Thống</div>
+    <a href="/admin/content" class="admin-nav-link <%= page_name==='content'?'active':'' %>">
+      <span class="nav-icon">📝</span> Nội Dung Website
+    </a>
+    <a href="/admin/settings" class="admin-nav-link <%= page_name==='settings'?'active':'' %>">
+      <span class="nav-icon">⚙️</span> Cài Đặt Shop
+    </a>
+    <a href="/" class="admin-nav-link">
+      <span class="nav-icon">🏠</span> Về Trang Chủ
+    </a>
+    <a href="/dang-xuat" class="admin-nav-link" style="color:rgba(255,100,100,.7);">
+      <span class="nav-icon">🚪</span> Đăng Xuất
+    </a>
+  </nav>
+</div>

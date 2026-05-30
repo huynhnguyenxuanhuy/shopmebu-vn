@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cài Đặt Shop – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>⚙️ Cài Đặt Shop</h1>
+    </div>
+    <div class="admin-content">
+
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <form method="POST" action="/admin/settings" class="admin-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+
+          <%# THÔNG TIN SHOP %>
+          <div class="admin-card">
+            <div class="admin-card-header"><h3>🏪 Thông Tin Shop</h3></div>
+            <div class="admin-card-body">
+              <div class="form-group">
+                <label>Tên Shop</label>
+                <input type="text" name="shop_name" value="<%= settings.site_name || 'SHOPMEBU.VN' %>">
+              </div>
+              <div class="form-group">
+                <label>Mô Tả / Slogan</label>
+                <textarea name="shop_desc"><%= settings.shop_desc || 'Mua Bán Acc VPlay – Uy Tín – Tự Động 24/7' %></textarea>
+              </div>
+              <div class="form-group">
+                <label>% Bonus Nạp Tiền</label>
+                <input type="number" name="bonus_percent" value="<%= settings.deposit_bonus_pct || '10' %>" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label>Số Tiền Nạp Tối Thiểu (đ)</label>
+                <input type="number" name="min_deposit" value="<%= settings.min_deposit || '10000' %>">
+              </div>
+            </div>
+          </div>
+
+          <%# THÔNG TIN NGÂN HÀNG %>
+          <div>
+            <div class="admin-card" style="margin-bottom:18px;">
+              <div class="admin-card-header"><h3>🏦 TPBank</h3></div>
+              <div class="admin-card-body">
+                <div class="form-group">
+                  <label>Số Tài Khoản</label>
+                  <input type="text" name="bank_number" value="<%= settings.tpbank_stk || '' %>" placeholder="00000000000">
+                </div>
+                <div class="form-group">
+                  <label>Tên Chủ TK</label>
+                  <input type="text" name="bank_name" value="<%= settings.tpbank_name || '' %>" placeholder="NGUYEN VAN A">
+                </div>
+                <div class="form-group">
+                  <label>Chi Nhánh</label>
+                  <input type="text" name="bank_branch" value="<%= settings.bank_branch || '' %>" placeholder="Hồ Chí Minh">
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-card-header"><h3>📱 MoMo</h3></div>
+              <div class="admin-card-body">
+                <div class="form-group">
+                  <label>Số Điện Thoại MoMo</label>
+                  <input type="text" name="momo_number" value="<%= settings.momo_stk || '' %>" placeholder="09xxxxxxxx">
+                </div>
+                <div class="form-group">
+                  <label>Tên Chủ MoMo</label>
+                  <input type="text" name="momo_name" value="<%= settings.momo_name || '' %>" placeholder="Nguyen Van A">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:20px;text-align:center;">
+          <button type="submit" class="btn btn-primary" style="padding:13px 48px;font-size:15px;">
+            💾 Lưu Cài Đặt
+          </button>
+        </div>
+      </form>
+
+      <%# SEPAY WEBHOOK INFO %>
+      <div class="admin-card" style="margin-top:22px;">
+        <div class="admin-card-header"><h3>🔔 SePay Webhook</h3></div>
+        <div class="admin-card-body" style="font-size:13px;line-height:1.8;">
+          <p>URL webhook: <code style="background:var(--bg);padding:3px 10px;border-radius:8px;color:var(--primary);font-weight:700;">https://shopmebu.vn/api/webhook/sepay</code></p>
+          <p style="margin-top:8px;">Method: <strong>POST</strong> · Header: <code style="background:var(--bg);padding:2px 8px;border-radius:6px;">x-api-key: SEPAY_WEBHOOK_TOKEN</code></p>
+          <p style="margin-top:8px;color:var(--text-muted);">Token được cấu hình trong file <strong>.env</strong> → biến <code>SEPAY_WEBHOOK_TOKEN</code>. Phải trùng với token trong dashboard SePay.</p>
+          <p style="margin-top:8px;color:var(--text-muted);">Nội dung chuyển khoản phải chứa mã: <code style="background:var(--bg);padding:2px 8px;border-radius:6px;">SMB{userId}</code> để hệ thống tự cộng tiền.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

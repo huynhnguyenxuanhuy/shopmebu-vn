@@ -1,0 +1,237 @@
+<%/* =============================================
+   PARTIAL: header.ejs
+   Include vào đầu mỗi trang: topbar + header + navbar
+   ============================================= */%>
+
+<!-- ===== TOP BAR ===== -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <span><span class="online-dot"></span> Giao dịch tự động 24/7</span>
+      <span class="divider"></span>
+      <a href="https://zalo.me/g/gssfxa652" target="_blank">📱 Zalo Group</a>
+      <span class="divider"></span>
+      <a href="https://www.facebook.com/share/18jMzbCfXh/" target="_blank">📘 Facebook Shop</a>
+    </div>
+    <div class="topbar-right">
+      <a href="https://www.facebook.com/share/g/1DnNmXyHPR/" target="_blank">👥 Nhóm Facebook</a>
+      <span class="divider"></span>
+      <a href="/nap-tien">🎁 Nạp Tiền – Nhận Ngay Acc</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN HEADER ===== -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- HAMBURGER (mobile only) -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- LOGO -->
+    <a href="/" class="site-logo">
+      <span class="logo-text">🏪 SHOPMEBU.VN</span>
+      <span class="logo-sub">Mua Bán Acc VPlay – Uy Tín – Tự Động 24/7</span>
+    </a>
+
+    <!-- SEARCH BAR -->
+    <div class="search-wrap">
+      <form action="/search" method="GET">
+        <input type="text"
+               name="q"
+               placeholder="Bạn Cần Tìm Acc Như Nào?"
+               value="<%= typeof query !== 'undefined' ? query : '' %>"
+               autocomplete="off">
+        <button type="submit" class="search-btn">🔍</button>
+      </form>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="header-actions">
+
+      <!-- NẠP TIỀN -->
+      <a href="/nap-tien" class="btn-napien">
+        💳 <span>Nạp tiền</span>
+      </a>
+
+      <!-- NOTIFICATION BELL -->
+      <a href="/thong-bao" class="icon-btn" title="Thông báo">
+        🔔
+        <% if (typeof notifCount !== 'undefined' && notifCount > 0) { %>
+          <span class="badge"><%= notifCount %></span>
+        <% } %>
+      </a>
+
+      <!-- USER MENU -->
+      <% if (typeof user !== 'undefined' && user) { %>
+        <!-- Đã đăng nhập -->
+        <div class="user-menu">
+          <div class="user-toggle">
+            <div class="user-avatar">👤</div>
+            <div>
+              <div class="user-name"><%= user.username %></div>
+              <div class="user-balance">💰 <span id="headerBalance"><%= (user.balance || 0).toLocaleString('vi-VN') %></span>đ</div>
+            </div>
+            <span style="font-size:10px;color:#666;">▼</span>
+          </div>
+          <div class="dropdown-menu-custom">
+            <a href="/tai-khoan">👤 Hồ sơ cá nhân</a>
+            <a href="/lich-su-mua">🛒 Lịch sử mua hàng</a>
+            <a href="/lich-su-nap">💳 Lịch sử nạp tiền</a>
+            <a href="/nap-tien">💰 Nạp thêm tiền</a>
+            <div class="divider-line"></div>
+            <% if (user.role === 'admin' || user.role === 'superadmin') { %>
+              <a href="/admin" style="color:#f39c12;">⚙️ Admin Panel</a>
+              <div class="divider-line"></div>
+            <% } %>
+            <a href="/dang-xuat" style="color:#e74c3c;">🚪 Đăng xuất</a>
+          </div>
+        </div>
+      <% } else { %>
+        <!-- Chưa đăng nhập -->
+        <a href="/dang-nhap" class="icon-btn" title="Đăng nhập / Đăng ký" style="border-radius:24px;padding:0 14px;width:auto;gap:6px;font-size:13px;font-weight:600;">
+          👤 Đăng nhập
+        </a>
+      <% } %>
+
+    </div>
+    <!-- end header-actions -->
+
+  </div>
+</header>
+
+<!-- ===== MAIN NAVBAR ===== -->
+<nav class="main-nav">
+  <div class="nav-inner">
+
+    <!-- TRANG CHỦ -->
+    <div class="nav-item">
+      <a href="/" class="nav-link <%= typeof page !== 'undefined' && page === 'home' ? 'active' : '' %>">
+        🏠 Trang Chủ
+      </a>
+    </div>
+
+    <!-- HUYỀN ẢNH VÕ LÂM -->
+    <div class="nav-item">
+      <a class="nav-link" href="/game/huyen-anh-vo-lam">
+        ⚔️ Huyền Ảnh Võ Lâm
+        <span class="arrow">▾</span>
+      </a>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-header">⚔️ Huyền Ảnh Võ Lâm</div>
+        <a href="/game/huyen-anh-vo-lam/tu-chon">
+          Acc Tự Chọn
+          <span class="item-count">xxx acc</span>
+        </a>
+        <a href="/game/huyen-anh-vo-lam/20k">Acc 20K Trắng Thông Tin</a>
+        <a href="/game/huyen-anh-vo-lam/50k">Acc 50K Trắng Thông Tin</a>
+        <a href="/game/huyen-anh-vo-lam/100k">Acc 100K Trắng Thông Tin</a>
+        <a href="/game/huyen-anh-vo-lam/200k">Acc 200K Trắng Thông Tin</a>
+        <a href="/game/huyen-anh-vo-lam/vip">Acc VIP Cao Cấp <span class="item-hot">🔥</span></a>
+        <a href="/game/huyen-anh-vo-lam/tui-mu">
+          Túi Mù Random
+          <span class="item-new">MỚI</span>
+        </a>
+        <a href="/game/huyen-anh-vo-lam/reg">Acc REG</a>
+      </div>
+    </div>
+
+    <!-- GIANG HỒ KỲ NGỘ -->
+    <div class="nav-item">
+      <a class="nav-link" href="/game/giang-ho-ky-ngo">
+        🐉 Giang Hồ Kỳ Ngộ
+        <span class="arrow">▾</span>
+      </a>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-header">🐉 Giang Hồ Kỳ Ngộ</div>
+        <a href="/game/giang-ho-ky-ngo/tu-chon">
+          Acc Tự Chọn
+          <span class="item-count">xxx acc</span>
+        </a>
+        <a href="/game/giang-ho-ky-ngo/server-moi">Acc Server Mới <span class="item-new">HOT</span></a>
+        <a href="/game/giang-ho-ky-ngo/chien-luc-cao">Acc Chiến Lực Cao</a>
+        <a href="/game/giang-ho-ky-ngo/vip">Acc VIP Cao</a>
+        <a href="/game/giang-ho-ky-ngo/tui-mu">Túi Mù Random</a>
+        <a href="/game/giang-ho-ky-ngo/reg">Acc REG</a>
+      </div>
+    </div>
+
+    <!-- GAME VPLAY KHÁC -->
+    <div class="nav-item">
+      <a class="nav-link" href="/game/vplay-khac">
+        🎲 Game VPlay Khác
+        <span class="arrow">▾</span>
+      </a>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-header">🎲 Game VPlay Khác</div>
+        <a href="/game/vplay-khac/tu-chon">Acc Tự Chọn</a>
+        <a href="/game/vplay-khac/random">Acc Random Giá Rẻ</a>
+        <a href="/game/vplay-khac/vip">Acc VIP</a>
+      </div>
+    </div>
+
+    <!-- NẠP TIỀN -->
+    <div class="nav-item">
+      <a href="/nap-tien" class="nav-link nav-naptien <%= typeof page !== 'undefined' && page === 'naptien' ? 'active' : '' %>">
+        💳 Nạp Tiền
+      </a>
+    </div>
+
+    <!-- THÔNG TIN SHOP -->
+    <div class="nav-item">
+      <a href="/thong-tin-shop" class="nav-link">
+        ℹ️ Thông Tin Shop
+      </a>
+    </div>
+
+  </div>
+</nav>
+
+<!-- ===== MOBILE NAV DRAWER ===== -->
+<div class="mobile-nav-drawer" id="mobileNavDrawer">
+  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+  <div class="mobile-nav-panel">
+    <div class="mobile-nav-header">
+      <span class="logo-text" style="font-size:16px;">🏪 SHOPMEBU.VN</span>
+      <button class="mobile-nav-close" id="mobileNavClose">✕</button>
+    </div>
+
+    <% if (typeof user !== 'undefined' && user) { %>
+    <div class="mobile-user-card">
+      <div class="mu-name">👤 <%= user.username %></div>
+      <div class="mu-balance">💰 <%= (user.balance || 0).toLocaleString('vi-VN') %>đ</div>
+      <div class="mu-actions">
+        <a href="/nap-tien" class="mu-btn">💳 Nạp tiền</a>
+        <a href="/tai-khoan" class="mu-btn">👤 Tài khoản</a>
+      </div>
+    </div>
+    <% } else { %>
+    <div style="padding:12px 8px;">
+      <a href="/dang-nhap" class="btn btn-primary" style="width:100%;justify-content:center;border-radius:12px;">👤 Đăng nhập</a>
+    </div>
+    <% } %>
+
+    <div class="mobile-nav-links">
+      <div class="divider-line"></div>
+      <a href="/">🏠 Trang Chủ</a>
+      <a href="/game/huyen-anh-vo-lam">⚔️ Huyền Ảnh Võ Lâm</a>
+      <a href="/game/giang-ho-ky-ngo">🐉 Giang Hồ Kỳ Ngộ</a>
+      <a href="/game/vplay-khac">🎲 Game VPlay Khác</a>
+      <a href="/nap-tien" style="color:var(--accent);font-weight:800;">💳 Nạp Tiền</a>
+      <a href="/thong-tin-shop">ℹ️ Thông Tin Shop</a>
+      <div class="divider-line"></div>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <% if (user.role === 'admin' || user.role === 'superadmin') { %>
+          <a href="/admin" style="color:#f39c12;">⚙️ Admin Panel</a>
+        <% } %>
+        <a href="/thong-bao">🔔 Thông báo</a>
+        <a href="/lich-su-mua">🛒 Lịch sử mua hàng</a>
+        <a href="/lich-su-nap">💳 Lịch sử nạp tiền</a>
+        <a href="/dang-xuat" style="color:var(--primary);">🚪 Đăng xuất</a>
+      <% } %>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Nhập Admin - SHOPMEBU.VN</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --admin-red: #e60012;
+      --admin-dark: #17172a;
+      --admin-line: rgba(230,0,18,.16);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background:
+        linear-gradient(135deg, rgba(230,0,18,.08), rgba(255,255,255,.88) 42%, rgba(23,23,42,.08)),
+        #f7f8fb;
+      color: var(--admin-dark);
+      display: grid;
+      place-items: center;
+      padding: 28px 14px;
+    }
+    .admin-login-shell {
+      width: min(1080px, 100%);
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      background: #fff;
+      border: 1px solid var(--admin-line);
+      border-radius: 18px;
+      box-shadow: 0 22px 70px rgba(23,23,42,.14);
+      overflow: hidden;
+      min-height: 610px;
+    }
+    .admin-login-brand {
+      position: relative;
+      padding: 42px;
+      color: #fff;
+      background:
+        linear-gradient(135deg, rgba(122,0,0,.95), rgba(230,0,18,.88)),
+        url('/img/game-cards/hero-wuxia.svg') center/cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .admin-login-brand::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(30,0,0,.78), rgba(30,0,0,.35));
+    }
+    .admin-login-brand > * { position: relative; z-index: 1; }
+    .brand-mark {
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.28);
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      margin-bottom: 22px;
+    }
+    .admin-login-brand h1 {
+      margin: 0;
+      max-width: 520px;
+      font-size: 38px;
+      line-height: 1.14;
+      letter-spacing: 0;
+    }
+    .admin-login-brand p {
+      margin: 14px 0 0;
+      max-width: 520px;
+      color: rgba(255,255,255,.84);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+    .admin-login-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 26px;
+    }
+    .admin-login-badges span {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.20);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .admin-login-form {
+      padding: 46px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .admin-login-form h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+    .admin-login-form .sub {
+      margin: 8px 0 26px;
+      color: #76768b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .admin-alert {
+      border-radius: 12px;
+      padding: 11px 13px;
+      margin-bottom: 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .admin-alert.error {
+      background: #fff2f2;
+      border: 1px solid #ffc7c7;
+      color: #bd000f;
+    }
+    .admin-alert.success {
+      background: #effaf2;
+      border: 1px solid #a9e8bc;
+      color: #087734;
+    }
+    .admin-login-form label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 800;
+      font-size: 12px;
+      color: #34344a;
+    }
+    .admin-input {
+      width: 100%;
+      height: 48px;
+      border-radius: 12px;
+      border: 1.5px solid #e4e4ec;
+      background: #fbfbfd;
+      padding: 0 14px;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: .18s;
+    }
+    .admin-input:focus {
+      border-color: var(--admin-red);
+      box-shadow: 0 0 0 4px rgba(230,0,18,.09);
+      background: #fff;
+    }
+    .field { margin-bottom: 16px; }
+    .password-wrap {
+      position: relative;
+    }
+    .password-wrap .admin-input {
+      padding-right: 48px;
+    }
+    .toggle-admin-pw {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border: 0;
+      background: transparent;
+      color: #8d4850;
+      cursor: pointer;
+      border-radius: 10px;
+    }
+    .toggle-admin-pw:hover { background: #fff0f1; color: var(--admin-red); }
+    .admin-submit {
+      width: 100%;
+      height: 50px;
+      margin-top: 6px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ff1e2d, #b8000d);
+      color: #fff;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(230,0,18,.26);
+    }
+    .admin-submit:hover { filter: brightness(1.03); }
+    .admin-login-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 18px;
+      font-size: 12px;
+      color: #77778b;
+    }
+    .admin-login-links a {
+      color: var(--admin-red);
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .admin-note {
+      margin-top: 22px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f6f6fa;
+      color: #68687c;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+    @media (max-width: 860px) {
+      body { align-items: start; }
+      .admin-login-shell { grid-template-columns: 1fr; min-height: 0; }
+      .admin-login-brand { min-height: 250px; padding: 30px; }
+      .admin-login-brand h1 { font-size: 29px; }
+      .admin-login-form { padding: 30px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="admin-login-shell">
+    <section class="admin-login-brand">
+      <div>
+        <div class="brand-mark"><i class="fa-solid fa-shield-halved"></i></div>
+        <h1>SHOPMEBU.VN Admin Panel</h1>
+        <p>Khu vực quản trị riêng cho kho acc, đơn hàng, người dùng, thanh toán và nội dung website.</p>
+        <div class="admin-login-badges">
+          <span><i class="fa-solid fa-lock"></i> Admin Only</span>
+          <span><i class="fa-solid fa-chart-line"></i> Dashboard</span>
+          <span><i class="fa-solid fa-wallet"></i> Payments</span>
+        </div>
+      </div>
+      <p style="font-size:12px;">Đăng nhập bằng tài khoản có quyền admin hoặc superadmin.</p>
+    </section>
+
+    <section class="admin-login-form">
+      <h2>Đăng nhập quản trị</h2>
+      <p class="sub">Trang này tách riêng khỏi đăng nhập khách hàng để vào đúng khu vực CMS/Admin.</p>
+
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="admin-alert error"><i class="fa-solid fa-triangle-exclamation"></i> <%= error_msg[0] %></div>
+      <% } %>
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="admin-alert success"><i class="fa-solid fa-circle-check"></i> <%= success_msg[0] %></div>
+      <% } %>
+
+      <form method="POST" action="/admin/login">
+        <input type="hidden" name="returnUrl" value="<%= returnUrl || '/admin' %>">
+        <div class="field">
+          <label for="adminUser"><i class="fa-solid fa-user-shield"></i> Tài khoản admin</label>
+          <input id="adminUser" class="admin-input" name="username" type="text" autocomplete="username" placeholder="shopmebu" required autofocus>
+        </div>
+        <div class="field">
+          <label for="adminPw"><i class="fa-solid fa-key"></i> Mật khẩu</label>
+          <div class="password-wrap">
+            <input id="adminPw" class="admin-input" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu admin" required>
+            <button class="toggle-admin-pw" type="button" onclick="toggleAdminPw()" aria-label="Hiện mật khẩu">
+              <i id="adminPwIcon" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="admin-submit" type="submit">
+          <i class="fa-solid fa-right-to-bracket"></i> Vào Admin Panel
+        </button>
+      </form>
+
+      <div class="admin-login-links">
+        <a href="/"><i class="fa-solid fa-house"></i> Về trang shop</a>
+        <span>SHOPMEBU.VN</span>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    function toggleAdminPw() {
+      const input = document.getElementById('adminPw');
+      const icon = document.getElementById('adminPwIcon');
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      icon.className = showing ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="Random bag account">
+  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#210005"/><stop offset=".55" stop-color="#8b0000"/><stop offset="1" stop-color="#281200"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="600" height="360" fill="url(#b)"/>
+  <circle cx="300" cy="144" r="120" fill="#ffd15a" opacity=".16"/>
+  <g transform="translate(156 84)" filter="url(#glow)">
+    <path d="M42 78h204v126H42z" fill="#5b1903"/>
+    <path d="M18 58h252v52H18z" fill="#d99a2a"/>
+    <path d="M56 20h176l38 38H18z" fill="#f4c557"/>
+    <path d="M126 58h36v146h-36z" fill="#8b0000"/>
+    <rect x="108" y="106" width="72" height="46" rx="10" fill="#ffd15a"/>
+    <path d="M138 118h12v22h-12z" fill="#4b1003"/>
+  </g>
+  <path d="M104 54l18 38 42 6-30 30 7 42-37-20-38 20 8-42-31-30 43-6z" fill="#fff2a6" opacity=".78"/>
+  <text x="30" y="316" fill="#ffd15a" font-size="30" font-family="Arial Black, Arial">TUI MU RANDOM</text>
+</svg>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard – SHOPMEBU.VN</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>📊 Dashboard</h1>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:12px;color:var(--text-muted);">Hôm nay: <strong><%= new Date().toLocaleDateString('vi-VN') %></strong></span>
+        <a href="/admin/acc/them" class="btn btn-primary btn-sm">➕ Thêm Acc</a>
+      </div>
+    </div>
+    <div class="admin-content">
+
+      <%# STATS CARDS %>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card red">
+          <div class="admin-stat-icon">🎮</div>
+          <div class="admin-stat-label">Acc Trong Kho</div>
+          <div class="admin-stat-value"><%= Number(stats.totalAcc).toLocaleString('vi-VN') %></div>
+          <div class="admin-stat-sub">sẵn sàng bán</div>
+        </div>
+        <div class="admin-stat-card green">
+          <div class="admin-stat-icon">✅</div>
+          <div class="admin-stat-label">Acc Đã Bán</div>
+          <div class="admin-stat-value"><%= Number(stats.soldAcc).toLocaleString('vi-VN') %></div>
+          <div class="admin-stat-sub">tổng toàn thời gian</div>
+        </div>
+        <div class="admin-stat-card blue">
+          <div class="admin-stat-icon">👥</div>
+          <div class="admin-stat-label">Tổng Users</div>
+          <div class="admin-stat-value"><%= Number(stats.totalUsers).toLocaleString('vi-VN') %></div>
+          <div class="admin-stat-sub">đã đăng ký</div>
+        </div>
+        <div class="admin-stat-card gold">
+          <div class="admin-stat-icon">💰</div>
+          <div class="admin-stat-label">Doanh Thu Hôm Nay</div>
+          <div class="admin-stat-value" style="font-size:18px;"><%= Number(stats.todayRev).toLocaleString('vi-VN') %>đ</div>
+          <div class="admin-stat-sub">tổng: <%= Number(stats.revenue).toLocaleString('vi-VN') %>đ</div>
+        </div>
+      </div>
+
+      <% if (stats.pendingLogs > 0) { %>
+      <div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:1.5px solid #ffc107;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:22px;">⚠️</span>
+        <div>
+          <strong style="color:#856404;"><%= stats.pendingLogs %> payment chờ xử lý thủ công!</strong>
+          <span style="color:#856404;font-size:13px;margin-left:8px;">Không tìm được user từ nội dung chuyển khoản.</span>
+        </div>
+        <a href="/admin/payments?filter=unprocessed" class="btn btn-warning btn-sm" style="margin-left:auto;">Xem Ngay</a>
+      </div>
+      <% } %>
+
+      <%# CHART + RECENT ORDERS %>
+      <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:22px;">
+        <%# DOANH THU 7 NGÀY %>
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>📈 Doanh Thu 7 Ngày Qua</h3>
+          </div>
+          <div class="admin-card-body">
+            <canvas id="revenueChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <%# ĐƠN HÀNG GẦN NHẤT %>
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>🛒 Đơn Hàng Gần Nhất</h3>
+            <a href="/admin/orders" class="btn btn-outline btn-sm">Xem tất cả</a>
+          </div>
+          <div class="admin-card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#ID</th>
+                    <th>User</th>
+                    <th>Game</th>
+                    <th>Giá</th>
+                    <th>Thời Gian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (recentOrders.length > 0) { %>
+                    <% recentOrders.forEach(o => { %>
+                    <tr>
+                      <td><strong>#<%= o.id %></strong></td>
+                      <td><%= o.username %></td>
+                      <td style="font-size:11px;"><%= o.game_slug %></td>
+                      <td style="font-weight:700;color:var(--primary);"><%= Number(o.amount).toLocaleString('vi-VN') %>đ</td>
+                      <td style="font-size:11px;color:var(--text-muted);"><%= new Date(o.created_at).toLocaleString('vi-VN') %></td>
+                    </tr>
+                    <% }) %>
+                  <% } else { %>
+                    <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">Chưa có đơn hàng nào</td></tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# THỐNG KÊ THEO NĂM / THÁNG %>
+      <div class="admin-card" style="margin-top:22px;">
+        <div class="admin-card-header" style="align-items:flex-start;gap:16px;">
+          <div>
+            <h3>📊 Thống Kê Theo Năm</h3>
+            <p style="margin:6px 0 0;color:var(--text-muted);font-size:12.5px;">Chia nhỏ từng tháng: doanh thu bán acc, tiền nạp và số đơn hàng.</p>
+          </div>
+          <form method="GET" action="/admin" style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+            <select name="year" class="form-control" style="min-width:120px;height:38px;">
+              <% const currentYear = new Date().getFullYear(); %>
+              <% for (let y = currentYear + 1; y >= currentYear - 4; y--) { %>
+                <option value="<%= y %>" <%= Number(selectedYear) === y ? 'selected' : '' %>><%= y %></option>
+              <% } %>
+            </select>
+            <button class="btn btn-primary btn-sm" type="submit">Xem</button>
+          </form>
+        </div>
+        <div class="admin-card-body">
+          <div style="height:320px;">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+          <div class="table-wrapper" style="margin-top:18px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tháng</th>
+                  <th>Doanh Thu Bán Acc</th>
+                  <th>Tiền Nạp</th>
+                  <th>Đơn Hàng</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% monthlyStats.forEach(row => { %>
+                  <tr>
+                    <td><strong><%= row.label %></strong></td>
+                    <td style="color:var(--primary);font-weight:800;"><%= Number(row.revenue).toLocaleString('vi-VN') %>đ</td>
+                    <td style="color:#0a9b50;font-weight:800;"><%= Number(row.deposits).toLocaleString('vi-VN') %>đ</td>
+                    <td><%= Number(row.orders).toLocaleString('vi-VN') %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// Revenue Chart
+const ctx = document.getElementById('revenueChart').getContext('2d');
+const chartData = <%- JSON.stringify(revenueChart) %>;
+const labels = chartData.map(d => new Date(d.day).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'}));
+const data   = chartData.map(d => Number(d.total));
+
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Doanh thu (đ)',
+      data,
+      backgroundColor: 'rgba(230,21,21,.15)',
+      borderColor: '#e61515',
+      borderWidth: 2,
+      borderRadius: 8,
+      hoverBackgroundColor: 'rgba(230,21,21,.35)',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.parsed.y.toLocaleString('vi-VN') + 'đ'
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: v => (v/1000).toFixed(0) + 'K'
+        }
+      }
+    }
+  }
+});
+
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyData = <%- JSON.stringify(monthlyStats) %>;
+new Chart(monthlyCtx, {
+  type: 'bar',
+  data: {
+    labels: monthlyData.map(d => `T${d.month}`),
+    datasets: [
+      {
+        label: 'Doanh thu bán acc',
+        data: monthlyData.map(d => Number(d.revenue)),
+        backgroundColor: 'rgba(230,21,21,.72)',
+        borderRadius: 8
+      },
+      {
+        label: 'Tiền nạp',
+        data: monthlyData.map(d => Number(d.deposits)),
+        backgroundColor: 'rgba(10,155,80,.55)',
+        borderRadius: 8
+      },
+      {
+        type: 'line',
+        label: 'Đơn hàng',
+        data: monthlyData.map(d => Number(d.orders)),
+        borderColor: '#f39c12',
+        backgroundColor: '#f39c12',
+        yAxisID: 'ordersAxis',
+        tension: .35
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: item => item.dataset.yAxisID === 'ordersAxis'
+            ? `${item.dataset.label}: ${item.parsed.y} đơn`
+            : `${item.dataset.label}: ${Number(item.parsed.y).toLocaleString('vi-VN')}đ`
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => Number(v).toLocaleString('vi-VN') + 'đ' }
+      },
+      ordersAxis: {
+        beginAtZero: true,
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { precision: 0 }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

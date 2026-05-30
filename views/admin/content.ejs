@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nội Dung Website – Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>📝 Nội Dung Website</h1>
+      <a href="/" target="_blank" class="btn btn-outline btn-sm">Xem trang chủ</a>
+    </div>
+
+    <div class="admin-content">
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success"><%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error"><%= error_msg[0] %></div>
+      <% } %>
+
+      <form method="POST" action="/admin/content" class="admin-form">
+        <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:start;">
+          <div>
+            <div class="admin-card" style="margin-bottom:22px;">
+              <div class="admin-card-header">
+                <h3>🏠 Hero Trang Chủ</h3>
+              </div>
+              <div class="admin-card-body">
+                <div class="form-group">
+                  <label>Dòng nhãn nhỏ</label>
+                  <input type="text" name="hero_badge" value="<%= content.hero_badge %>">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                  <div class="form-group">
+                    <label>Tiêu đề chính</label>
+                    <input type="text" name="hero_title" value="<%= content.hero_title %>">
+                  </div>
+                  <div class="form-group">
+                    <label>Dòng nổi bật</label>
+                    <input type="text" name="hero_highlight" value="<%= content.hero_highlight %>">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Mô tả hero</label>
+                  <textarea name="hero_subtitle" rows="4"><%= content.hero_subtitle %></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                  <div class="form-group">
+                    <label>Nút chính</label>
+                    <input type="text" name="hero_primary_label" value="<%= content.hero_primary_label %>">
+                    <input type="text" name="hero_primary_url" value="<%= content.hero_primary_url %>" style="margin-top:8px;">
+                  </div>
+                  <div class="form-group">
+                    <label>Nút phụ</label>
+                    <input type="text" name="hero_secondary_label" value="<%= content.hero_secondary_label %>">
+                    <input type="text" name="hero_secondary_url" value="<%= content.hero_secondary_url %>" style="margin-top:8px;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-card-header">
+                <h3>🏪 Trang Thông Tin Shop</h3>
+                <a href="/thong-tin-shop" target="_blank" class="btn btn-outline btn-sm">Xem</a>
+              </div>
+              <div class="admin-card-body">
+                <div style="display:grid;grid-template-columns:120px 1fr;gap:14px;">
+                  <div class="form-group">
+                    <label>Icon</label>
+                    <input type="text" name="info_icon" value="<%= content.info_icon %>">
+                  </div>
+                  <div class="form-group">
+                    <label>Tiêu đề</label>
+                    <input type="text" name="info_heading" value="<%= content.info_heading %>">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Nội dung, mỗi dòng là một đoạn</label>
+                  <textarea name="info_paragraphs" rows="7"><%= content.info_paragraphs %></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="admin-card" style="margin-bottom:22px;">
+              <div class="admin-card-header">
+                <h3>💬 Trang Box Sale</h3>
+                <a href="/box-sale" target="_blank" class="btn btn-outline btn-sm">Xem</a>
+              </div>
+              <div class="admin-card-body">
+                <div style="display:grid;grid-template-columns:100px 1fr;gap:14px;">
+                  <div class="form-group">
+                    <label>Icon</label>
+                    <input type="text" name="sale_icon" value="<%= content.sale_icon %>">
+                  </div>
+                  <div class="form-group">
+                    <label>Tiêu đề</label>
+                    <input type="text" name="sale_heading" value="<%= content.sale_heading %>">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Nội dung, mỗi dòng là một đoạn</label>
+                  <textarea name="sale_paragraphs" rows="6"><%= content.sale_paragraphs %></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Link Zalo/Facebook sale</label>
+                  <input type="text" name="sale_url" value="<%= content.sale_url %>">
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-card-header"><h3>💾 Lưu thay đổi</h3></div>
+              <div class="admin-card-body">
+                <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:16px;">
+                  Nội dung lưu ở đây sẽ tự liên kết ra trang chủ, trang thông tin shop và trang box sale. Nếu MySQL chưa bật, hệ thống lưu vào dữ liệu local để bạn test trước.
+                </p>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:13px 18px;font-size:15px;">
+                  💾 Lưu Nội Dung Website
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

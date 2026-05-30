@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="Wuxia server citadel">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#250006"/><stop offset=".55" stop-color="#8d0505"/><stop offset="1" stop-color="#0b0303"/></linearGradient></defs>
+  <rect width="600" height="360" fill="url(#sky)"/>
+  <circle cx="455" cy="86" r="98" fill="#ffd15a" opacity=".28"/>
+  <path d="M0 220l72-68 48 38 92-92 92 96 48-36 88 80 80-62 80 70v114H0z" fill="#090202" opacity=".48"/>
+  <g transform="translate(185 74)">
+    <path d="M16 220h220V88l-36 24-74-72-70 72-40-28z" fill="#210303"/>
+    <path d="M54 106h142v114H54z" fill="#5e0505"/>
+    <path d="M24 86h204L188 50l-28 20-34-54-42 54-24-18z" fill="#d9a233"/>
+    <path d="M96 160h60v60H96z" fill="#140101"/>
+    <path d="M70 128h28M154 128h28" stroke="#ffd15a" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text x="30" y="54" fill="#ffd15a" font-size="28" font-family="Arial Black, Arial">SERVER</text>
+  <text x="30" y="84" fill="#fff" fill-opacity=".78" font-size="18" font-family="Arial">Tu chon nhan acc</text>
+</svg>
