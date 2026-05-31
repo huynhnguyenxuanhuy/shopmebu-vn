@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" href="/favicon.png?v=2">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản Lý Users – Admin SHOPMEBU</title>
   <link rel="stylesheet" href="/css/style.css">
@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
+<%
+  const roleLabel = role => role === 'staff' ? 'CTV' : role;
+%>
 <div class="admin-layout">
   <%- include('_sidebar') %>
   <div class="admin-main">
@@ -67,7 +70,7 @@
                     <td style="font-weight:700;"><%= u.order_count %></td>
                     <td style="font-size:12px;"><%= Number(u.total_deposit||0).toLocaleString('vi-VN') %>đ</td>
                     <td>
-                      <span class="badge-role badge-<%= u.role %>"><%= u.role %></span>
+                      <span class="badge-role badge-<%= u.role %>"><%= roleLabel(u.role) %></span>
                     </td>
                     <td style="font-size:11px;color:var(--text-muted);"><%= new Date(u.created_at).toLocaleDateString('vi-VN') %></td>
                     <td>
@@ -135,7 +138,7 @@
         <label>Role mới</label>
         <select id="roleValue">
           <option value="customer">customer</option>
-          <option value="staff">staff</option>
+          <option value="staff">CTV</option>
           <option value="admin">admin</option>
           <option value="superadmin">superadmin</option>
         </select>
@@ -174,7 +177,7 @@ async function submitAdjust() {
 
 function openRole(id, name, role) {
   document.getElementById('roleUserId').value = id;
-  document.getElementById('roleUserName').textContent = 'User: ' + name + ' – Role hiện tại: ' + role;
+  document.getElementById('roleUserName').textContent = 'User: ' + name + ' – Role hiện tại: ' + (role === 'staff' ? 'CTV' : role);
   document.getElementById('roleValue').value = role;
   document.getElementById('roleMsg').style.display = 'none';
   document.getElementById('roleModal').classList.add('active');

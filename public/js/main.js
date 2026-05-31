@@ -39,6 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeMobileNav();
   });
 
+  // ===== USER MENU: CLICK TO OPEN =====
+  const userMenu = document.querySelector('.user-menu');
+  const userToggle = document.querySelector('.user-toggle');
+  if (userMenu && userToggle) {
+    userToggle.addEventListener('click', e => {
+      e.stopPropagation();
+      userMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+      if (!userMenu.contains(e.target)) userMenu.classList.remove('open');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') userMenu.classList.remove('open');
+    });
+  }
+
   // ===== SEARCH: CLOSE ON ESC =====
   const searchInput = document.querySelector('.search-wrap input');
   if (searchInput) {

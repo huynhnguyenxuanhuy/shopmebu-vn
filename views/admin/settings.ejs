@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" href="/favicon.png?v=2">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cài Đặt Shop – Admin SHOPMEBU</title>
   <link rel="stylesheet" href="/css/style.css">
@@ -58,15 +58,15 @@
               <div class="admin-card-body">
                 <div class="form-group">
                   <label>Số Tài Khoản</label>
-                  <input type="text" name="bank_number" value="<%= settings.tpbank_stk || '' %>" placeholder="00000000000">
+                  <input type="text" name="bank_number" value="<%= settings.tpbank_stk || '01577578410' %>" placeholder="00000000000">
                 </div>
                 <div class="form-group">
                   <label>Tên Chủ TK</label>
-                  <input type="text" name="bank_name" value="<%= settings.tpbank_name || '' %>" placeholder="NGUYEN VAN A">
+                  <input type="text" name="bank_name" value="<%= settings.tpbank_name || 'Võ Phan Trung Hiếu' %>" placeholder="NGUYEN VAN A">
                 </div>
                 <div class="form-group">
                   <label>Chi Nhánh</label>
-                  <input type="text" name="bank_branch" value="<%= settings.bank_branch || '' %>" placeholder="Hồ Chí Minh">
+                  <input type="text" name="bank_branch" value="<%= settings.bank_branch || 'tpbank' %>" placeholder="Hồ Chí Minh">
                 </div>
               </div>
             </div>

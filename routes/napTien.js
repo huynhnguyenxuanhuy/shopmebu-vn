@@ -47,7 +47,7 @@ router.get('/', requireLogin, async (req, res) => {
         qr_img: '/img/qr-momo.jpg'
       },
       tpbank: {
-        name:   'VO PHAN TRUNG HIEU',
+        name:   'Võ Phan Trung Hiếu',
         stk:    '01577578410',
         qr_img: '/img/qr-tpbank.jpg'
       }
