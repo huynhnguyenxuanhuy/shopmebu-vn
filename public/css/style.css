@@ -177,7 +177,8 @@ img { max-width: 100%; }
   box-shadow: var(--shadow-float); z-index:999; display:none;
 }
 @keyframes fadeDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
-.user-menu.open .dropdown-menu-custom { display:block; }
+.user-menu:not(.open):hover .dropdown-menu-custom { display:none !important; }
+.user-menu.open .dropdown-menu-custom { display:block !important; }
 .dropdown-menu-custom a {
   display:flex; align-items:center; gap:10px;
   padding:10px 18px; font-size:13px; color:var(--text);

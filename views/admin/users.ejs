@@ -31,7 +31,7 @@
           <form method="GET" style="display:flex;gap:12px;align-items:flex-end;">
             <div class="filter-group">
               <label>Tìm kiếm</label>
-              <input type="text" name="search" value="<%= search %>" placeholder="Username / email..." class="search-input" style="min-width:280px;">
+              <input type="text" name="search" value="<%= search %>" placeholder="ID / username / email..." class="search-input" style="min-width:280px;">
             </div>
             <button class="btn btn-primary btn-sm" type="submit">🔍 Tìm</button>
             <a href="<%= typeof resetUrl !== 'undefined' ? resetUrl : '/admin/users' %>" class="btn btn-outline btn-sm">↺ Reset</a>
@@ -77,6 +77,9 @@
                       <div class="action-btns">
                         <button class="btn btn-outline btn-sm" onclick="openAdjust(<%= u.id %>, '<%= u.username %>', <%= u.balance||0 %>)">💰</button>
                         <button class="btn btn-outline btn-sm" style="border-color:var(--accent-yellow);color:#856404;" onclick="openRole(<%= u.id %>, '<%= u.username %>', '<%= u.role %>')">🔑</button>
+                        <% if (page_name === 'ctv' && u.role !== 'staff') { %>
+                          <button class="btn btn-primary btn-sm" onclick="makeCtv(<%= u.id %>)">Gán CTV</button>
+                        <% } %>
                       </div>
                     </td>
                   </tr>
@@ -195,6 +198,16 @@ async function submitRole() {
   msg.style.color = d.success ? '#00c853' : 'var(--primary)';
   msg.textContent = d.message;
   if (d.success) setTimeout(() => location.reload(), 1200);
+}
+
+async function makeCtv(userId) {
+  const fd = new FormData();
+  fd.append('user_id', userId);
+  fd.append('role', 'staff');
+  const r = await fetch('/admin/users/set-role', { method:'POST', body:fd });
+  const d = await r.json();
+  alert(d.message);
+  if (d.success) location.reload();
 }
 </script>
 </body>

@@ -137,6 +137,18 @@ function safeAdminReturn(returnUrl) {
     : '/admin';
 }
 
+function addUserSearch(where, params, search) {
+  const key = String(search || '').trim();
+  if (!key) return where;
+  const idSearch = key.replace(/^#/, '');
+  if (/^\d+$/.test(idSearch)) {
+    params.push(Number(idSearch), `%${key}%`, `%${key}%`);
+    return `${where} AND (id=? OR username LIKE ? OR email LIKE ?)`;
+  }
+  params.push(`%${key}%`, `%${key}%`);
+  return `${where} AND (username LIKE ? OR email LIKE ?)`;
+}
+
 /* ─── ADMIN LOGIN RIÊNG ─── */
 router.get('/login', (req, res) => {
   if (req.session.user && ['admin', 'superadmin'].includes(req.session.user.role)) {
@@ -601,7 +613,7 @@ router.get('/users', async (req, res) => {
 
   let where = 'WHERE 1=1';
   const params = [];
-  if (search) { where += ' AND (username LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+  where = addUserSearch(where, params, search);
 
   try {
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
@@ -616,6 +628,7 @@ router.get('/users', async (req, res) => {
     res.render('admin/users', {
       layout: false, title: 'Quản Lý Users', admin: req.session.user,
       users, total, page, totalPages: Math.ceil(total/limit), search,
+      ctvSearchMode: false,
       success_msg: req.flash('success'), error_msg: req.flash('error'),
       page_name: 'users'
     });
@@ -641,9 +654,9 @@ router.get('/ctv', async (req, res) => {
   const limit  = 20;
   const offset = (page - 1) * limit;
 
-  let where = "WHERE role='staff'";
+  let where = search ? 'WHERE 1=1' : "WHERE role='staff'";
   const params = [];
-  if (search) { where += ' AND (username LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+  where = addUserSearch(where, params, search);
 
   try {
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
@@ -658,19 +671,27 @@ router.get('/ctv', async (req, res) => {
     res.render('admin/users', {
       layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
       admin: req.session.user, users, total, page, totalPages: Math.ceil(total/limit), search,
+      ctvSearchMode: Boolean(search),
       success_msg: req.flash('success'), error_msg: req.flash('error'),
       page_name: 'ctv'
     });
   } catch (err) {
     console.error(err);
-    let users = (await localStore.readUsers()).filter(u => u.role === 'staff');
+    let users = await localStore.readUsers();
+    if (!search) users = users.filter(u => u.role === 'staff');
     if (search) {
       const key = search.toLowerCase();
-      users = users.filter(u => u.username.toLowerCase().includes(key) || u.email.toLowerCase().includes(key));
+      const idKey = key.replace(/^#/, '');
+      users = users.filter(u =>
+        String(u.id) === idKey ||
+        u.username.toLowerCase().includes(key) ||
+        String(u.email || '').toLowerCase().includes(key)
+      );
     }
     res.render('admin/users', {
       layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
       admin: req.session.user, users, total:users.length, page:1, totalPages:1, search,
+      ctvSearchMode: Boolean(search),
       success_msg:req.flash('success'), error_msg:['Đang dùng dữ liệu local vì MySQL chưa bật'], page_name:'ctv'
     });
   }
