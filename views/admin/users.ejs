@@ -17,7 +17,7 @@
   <%- include('_sidebar') %>
   <div class="admin-main">
     <div class="admin-topbar"><button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
-      <h1>👥 Quản Lý Users <span style="font-size:14px;font-weight:600;color:var(--text-muted);">(<%= total %> người)</span></h1>
+      <h1>👥 <%= typeof pageTitle !== 'undefined' ? pageTitle : 'Quản Lý Users' %> <span style="font-size:14px;font-weight:600;color:var(--text-muted);">(<%= total %> người)</span></h1>
     </div>
     <div class="admin-content">
 
@@ -34,7 +34,7 @@
               <input type="text" name="search" value="<%= search %>" placeholder="Username / email..." class="search-input" style="min-width:280px;">
             </div>
             <button class="btn btn-primary btn-sm" type="submit">🔍 Tìm</button>
-            <a href="/admin/users" class="btn btn-outline btn-sm">↺ Reset</a>
+            <a href="<%= typeof resetUrl !== 'undefined' ? resetUrl : '/admin/users' %>" class="btn btn-outline btn-sm">↺ Reset</a>
           </form>
         </div>
       </div>

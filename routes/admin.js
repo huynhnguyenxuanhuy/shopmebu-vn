@@ -634,6 +634,48 @@ router.get('/users', async (req, res) => {
   }
 });
 
+/* ─── DANH SÁCH CTV ─── */
+router.get('/ctv', async (req, res) => {
+  const search = req.query.search || '';
+  const page   = parseInt(req.query.page) || 1;
+  const limit  = 20;
+  const offset = (page - 1) * limit;
+
+  let where = "WHERE role='staff'";
+  const params = [];
+  if (search) { where += ' AND (username LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+
+  try {
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
+    const [users] = await db.query(`
+      SELECT u.*,
+        (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) as order_count,
+        (SELECT COALESCE(SUM(amount),0) FROM transactions t WHERE t.user_id=u.id AND t.type='deposit' AND t.status='success') as total_deposit
+      FROM users u ${where}
+      ORDER BY u.id DESC LIMIT ? OFFSET ?
+    `, [...params, limit, offset]);
+
+    res.render('admin/users', {
+      layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
+      admin: req.session.user, users, total, page, totalPages: Math.ceil(total/limit), search,
+      success_msg: req.flash('success'), error_msg: req.flash('error'),
+      page_name: 'ctv'
+    });
+  } catch (err) {
+    console.error(err);
+    let users = (await localStore.readUsers()).filter(u => u.role === 'staff');
+    if (search) {
+      const key = search.toLowerCase();
+      users = users.filter(u => u.username.toLowerCase().includes(key) || u.email.toLowerCase().includes(key));
+    }
+    res.render('admin/users', {
+      layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
+      admin: req.session.user, users, total:users.length, page:1, totalPages:1, search,
+      success_msg:req.flash('success'), error_msg:['Đang dùng dữ liệu local vì MySQL chưa bật'], page_name:'ctv'
+    });
+  }
+});
+
 /* ─── ĐỔI ROLE USER ─── */
 router.post('/users/set-role', async (req, res) => {
   const { user_id, role } = req.body;
