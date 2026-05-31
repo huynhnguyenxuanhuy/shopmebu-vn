@@ -68,6 +68,7 @@ async function readRuntime() {
     accounts: demoAccounts.map(a => ({ ...a, created_at: now(), sold_at: null })),
     orders: [],
     transactions: [],
+    ctv_sales: [],
     notifications: [],
     payment_logs: [],
     settings: {}
@@ -182,6 +183,7 @@ async function addAccount(payload) {
     server: payload.server || null,
     images: payload.image_url || 'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592',
     status: 'available',
+    ctv_id: payload.ctv_id ? Number(payload.ctv_id) : null,
     so_tuong: 0,
     trang_phuc: 0,
     ngoc: 0,
@@ -210,7 +212,8 @@ async function updateAccount(id, payload) {
     price: Number(payload.price) || 0,
     rank: payload.rank_name || null,
     server: payload.server || null,
-    images: payload.image_url || runtime.accounts[idx].images
+    images: payload.image_url || runtime.accounts[idx].images,
+    ctv_id: payload.ctv_id ? Number(payload.ctv_id) : null
   };
   await writeRuntime(runtime);
   return enrichAccount(runtime.accounts[idx]);
@@ -225,7 +228,7 @@ async function deleteAccount(id) {
   return true;
 }
 
-async function buyAccount(userId, accId) {
+async function buyAccount(userId, accId, referralCtvId = null) {
   const runtime = await readRuntime();
   const users = await readUsers();
   const user = users.find(u => Number(u.id) === Number(userId));
@@ -244,6 +247,27 @@ async function buyAccount(userId, accId) {
   user.balance = after;
   acc.status = 'sold';
   acc.sold_at = now();
+  // Credit CTV balance when their acc is sold
+  const ctvId = Number(acc.ctv_id || referralCtvId || 0);
+  if (ctvId && ctvId !== Number(userId)) {
+    const ctvUser = users.find(u => Number(u.id) === ctvId);
+    if (ctvUser && ctvUser.role === 'staff') {
+      const pct = Math.max(0, Math.min(100, Number(runtime.settings?.ctv_commission?.[acc.category_id] ?? 100)));
+      const commissionAmount = Math.floor(Number(acc.price) * pct / 100);
+      ctvUser.ctv_balance = (Number(ctvUser.ctv_balance) || 0) + commissionAmount;
+      if (!runtime.ctv_sales) runtime.ctv_sales = [];
+      runtime.ctv_sales.push({
+        id: nextId(runtime.ctv_sales, 1),
+        ctv_id: ctvId,
+        account_id: Number(accId),
+        order_id: null,
+        amount: commissionAmount,
+        commission_percent: pct,
+        status: 'credited',
+        created_at: now()
+      });
+    }
+  }
   const order = {
     id: nextId(runtime.orders, 1),
     user_id: Number(userId),
@@ -373,6 +397,59 @@ async function listPaymentLogs() {
   }));
 }
 
+
+// ===== CTV WITHDRAWAL FUNCTIONS =====
+async function createCtvWithdrawal(ctvId, amount, bankInfo) {
+  const runtime = await readRuntime();
+  if (!runtime.ctv_withdrawals) runtime.ctv_withdrawals = [];
+  const id = nextId(runtime.ctv_withdrawals, 1);
+  const w = { id, ctv_id: Number(ctvId), amount: Number(amount), bank_info: bankInfo, status: 'pending', created_at: now() };
+  runtime.ctv_withdrawals.push(w);
+  await writeRuntime(runtime);
+  return w;
+}
+async function getCtvWithdrawals(ctvId) {
+  const runtime = await readRuntime();
+  const list = runtime.ctv_withdrawals || [];
+  if (ctvId) return list.filter(w => Number(w.ctv_id) === Number(ctvId));
+  return list;
+}
+
+async function getCtvSales(ctvId) {
+  const runtime = await readRuntime();
+  const list = runtime.ctv_sales || [];
+  return list
+    .filter(s => !ctvId || Number(s.ctv_id) === Number(ctvId))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map(s => {
+      const acc = runtime.accounts.find(a => Number(a.id) === Number(s.account_id));
+      const category = categoryById(acc?.category_id) || categories[0];
+      return { ...s, acc_username: acc?.acc_username, title: acc?.title, rank: acc?.rank, game_name: category.name };
+    });
+}
+async function approveCtvWithdrawal(withdrawalId) {
+  const runtime = await readRuntime();
+  const users = await readUsers();
+  if (!runtime.ctv_withdrawals) runtime.ctv_withdrawals = [];
+  const w = runtime.ctv_withdrawals.find(x => Number(x.id) === Number(withdrawalId));
+  if (!w || w.status !== 'pending') return false;
+  const ctvUser = users.find(u => Number(u.id) === Number(w.ctv_id));
+  if (!ctvUser) return false;
+  ctvUser.ctv_balance = Math.max(0, (Number(ctvUser.ctv_balance) || 0) - Number(w.amount));
+  w.status = 'approved'; w.approved_at = now();
+  await writeRuntime(runtime); await writeUsers(users);
+  return true;
+}
+async function rejectCtvWithdrawal(withdrawalId) {
+  const runtime = await readRuntime();
+  if (!runtime.ctv_withdrawals) runtime.ctv_withdrawals = [];
+  const w = runtime.ctv_withdrawals.find(x => Number(x.id) === Number(withdrawalId));
+  if (!w || w.status !== 'pending') return false;
+  w.status = 'rejected'; w.rejected_at = now();
+  await writeRuntime(runtime);
+  return true;
+}
+
 module.exports = {
   categories,
   accTypes,
@@ -398,5 +475,11 @@ module.exports = {
   markNotificationsRead,
   listOrders,
   listPaymentLogs,
-  nextId
+  nextId,
+  createCtvWithdrawal,
+  getCtvWithdrawals,
+  getCtvSales,
+  approveCtvWithdrawal,
+  rejectCtvWithdrawal,
+  readUsers
 };

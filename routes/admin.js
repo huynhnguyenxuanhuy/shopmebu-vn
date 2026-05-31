@@ -140,13 +140,82 @@ function safeAdminReturn(returnUrl) {
 function addUserSearch(where, params, search) {
   const key = String(search || '').trim();
   if (!key) return where;
-  const idSearch = key.replace(/^#/, '');
-  if (/^\d+$/.test(idSearch)) {
-    params.push(Number(idSearch), `%${key}%`, `%${key}%`);
-    return `${where} AND (id=? OR username LIKE ? OR email LIKE ?)`;
+  const idKey = key.replace(/^#/, '');
+  if (/^\d+$/.test(idKey)) {
+    params.push(Number(idKey), `%${key}%`, `%${key}%`);
+    return `${where} AND (u.id=? OR u.username LIKE ? OR u.email LIKE ?)`;
   }
   params.push(`%${key}%`, `%${key}%`);
-  return `${where} AND (username LIKE ? OR email LIKE ?)`;
+  return `${where} AND (u.username LIKE ? OR u.email LIKE ?)`;
+}
+
+async function ensureCtvSchema() {
+  try {
+    const [balanceCol] = await db.query("SHOW COLUMNS FROM users LIKE 'ctv_balance'");
+    if (!balanceCol.length) {
+      await db.query('ALTER TABLE users ADD COLUMN ctv_balance DECIMAL(15,0) DEFAULT 0');
+    }
+  } catch (_) {}
+
+  try {
+    const [ctvCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'ctv_id'");
+    if (!ctvCol.length) {
+      await db.query('ALTER TABLE accounts ADD COLUMN ctv_id INT DEFAULT NULL');
+    }
+  } catch (_) {}
+
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ctv_withdrawals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ctv_id INT NOT NULL,
+        amount DECIMAL(15,0) NOT NULL,
+        bank_info TEXT DEFAULT NULL,
+        status ENUM('pending','approved','rejected') DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        approved_at DATETIME DEFAULT NULL,
+        rejected_at DATETIME DEFAULT NULL,
+        FOREIGN KEY (ctv_id) REFERENCES users(id)
+      ) ENGINE=InnoDB
+    `);
+  } catch (_) {}
+
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ctv_sales (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ctv_id INT NOT NULL,
+        account_id INT NOT NULL,
+        order_id INT DEFAULT NULL,
+        amount DECIMAL(15,0) NOT NULL,
+        commission_percent DECIMAL(5,2) DEFAULT 100,
+        status ENUM('credited') DEFAULT 'credited',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+  } catch (_) {}
+
+  try {
+    const [percentCol] = await db.query("SHOW COLUMNS FROM ctv_sales LIKE 'commission_percent'");
+    if (!percentCol.length) {
+      await db.query('ALTER TABLE ctv_sales ADD COLUMN commission_percent DECIMAL(5,2) DEFAULT 100');
+    }
+  } catch (_) {}
+}
+
+async function getCtvCommissionSettings() {
+  const [games] = await db.query('SELECT id, name, slug FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
+  const keys = games.map(g => `ctv_commission_game_${g.id}`);
+  let settingsMap = {};
+  if (keys.length) {
+    const placeholders = keys.map(() => '?').join(',');
+    const [settings] = await db.query(`SELECT \`key\`, value FROM settings WHERE \`key\` IN (${placeholders})`, keys);
+    settings.forEach(s => { settingsMap[s.key] = s.value; });
+  }
+  return games.map(game => ({
+    ...game,
+    commission_percent: Number(settingsMap[`ctv_commission_game_${game.id}`] ?? 100)
+  }));
 }
 
 /* ─── ADMIN LOGIN RIÊNG ─── */
@@ -369,12 +438,15 @@ router.get('/acc', async (req, res) => {
 /* ─── FORM THÊM ACC ─── */
 router.get('/acc/them', async (req, res) => {
   let games = localStore.categories;
+  let ctvUsers = [];
   try {
+    await ensureCtvSchema();
     [games] = await db.query('SELECT * FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
+    [ctvUsers] = await db.query('SELECT id, username, email FROM users WHERE role="staff" ORDER BY username ASC');
   } catch (_) {}
   res.render('admin/acc-add', {
     layout: false, title: 'Thêm Acc Mới', admin: req.session.user,
-    games,
+    games, ctvUsers,
     success_msg: req.flash('success'), error_msg: req.flash('error'),
     page_name: 'acc-add'
   });
@@ -384,7 +456,7 @@ router.get('/acc/them', async (req, res) => {
 router.post('/acc/them', upload.single('image'), async (req, res) => {
   const {
     game_slug, acc_username, acc_password, acc_info,
-    title, price, rank_name, server, acc_type, category
+    title, price, rank_name, server, acc_type, category, ctv_id
   } = req.body;
 
   if (!game_slug || !acc_username || !acc_password || !price) {
@@ -393,8 +465,10 @@ router.post('/acc/them', upload.single('image'), async (req, res) => {
   }
 
   const image_url = req.file ? '/uploads/acc/' + req.file.filename : null;
+  const ctvId = ctv_id ? parseInt(ctv_id) : null;
 
   try {
+    await ensureCtvSchema();
     const categoryRow = await findCategoryBySlug(game_slug);
     if (!categoryRow) {
       req.flash('error', 'Game không hợp lệ!');
@@ -404,8 +478,8 @@ router.post('/acc/them', upload.single('image'), async (req, res) => {
     const accTypeId = await findAccTypeId(categoryRow.id, acc_type);
     await db.query(`
       INSERT INTO accounts
-        (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+        (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status, ctv_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', ?)
     `, [
       categoryRow.id,
       accTypeId,
@@ -416,14 +490,15 @@ router.post('/acc/them', upload.single('image'), async (req, res) => {
       price,
       rank_name || null,
       server || null,
-      image_url
+      image_url,
+      ctvId || null
     ]);
 
     req.flash('success', `✅ Đã thêm acc ${acc_username} thành công!`);
     res.redirect('/admin/acc');
   } catch (err) {
     console.error(err);
-    await localStore.addAccount({ ...req.body, image_url });
+    await localStore.addAccount({ ...req.body, ctv_id: ctvId || null, image_url });
     req.flash('success', '✅ Đã thêm acc vào dữ liệu local!');
     res.redirect('/admin/acc');
   }
@@ -484,6 +559,7 @@ router.post('/acc/bulk', async (req, res) => {
 router.get('/acc/sua/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
+    await ensureCtvSchema();
     const [[acc]] = await db.query(`
       SELECT a.*, g.slug AS game_slug, at.slug AS acc_type
       FROM accounts a
@@ -497,12 +573,14 @@ router.get('/acc/sua/:id', async (req, res) => {
     }
 
     const [games] = await db.query('SELECT * FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
+    const [ctvUsers] = await db.query('SELECT id, username, email FROM users WHERE role="staff" ORDER BY username ASC');
     res.render('admin/acc-edit', {
       layout: false,
       title: 'Sửa Acc',
       admin: req.session.user,
       acc,
       games,
+      ctvUsers,
       success_msg: req.flash('success'),
       error_msg: req.flash('error'),
       page_name: 'acc'
@@ -519,6 +597,7 @@ router.get('/acc/sua/:id', async (req, res) => {
       admin: req.session.user,
       acc,
       games: localStore.categories,
+      ctvUsers: (await localStore.readUsers()).filter(u => u.role === 'staff'),
       success_msg: req.flash('success'),
       error_msg: req.flash('error'),
       page_name: 'acc'
@@ -531,7 +610,7 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
   const id = parseInt(req.params.id);
   const {
     game_slug, acc_username, acc_password, acc_info,
-    title, price, rank_name, server, acc_type
+    title, price, rank_name, server, acc_type, ctv_id
   } = req.body;
 
   if (!game_slug || !acc_username || !acc_password || !price) {
@@ -540,6 +619,7 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
   }
 
   try {
+    await ensureCtvSchema();
     const categoryRow = await findCategoryBySlug(game_slug);
     if (!categoryRow) {
       req.flash('error', 'Game không hợp lệ!');
@@ -554,11 +634,12 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
 
     const accTypeId = await findAccTypeId(categoryRow.id, acc_type);
     const imageUrl = req.file ? '/uploads/acc/' + req.file.filename : oldAcc.images;
+    const ctvId = ctv_id ? parseInt(ctv_id) : null;
 
     await db.query(`
       UPDATE accounts
       SET category_id=?, acc_type_id=?, acc_username=?, acc_password=?,
-          acc_info=?, title=?, price=?, rank=?, server=?, images=?
+          acc_info=?, title=?, price=?, rank=?, server=?, images=?, ctv_id=?
       WHERE id=?
     `, [
       categoryRow.id,
@@ -571,6 +652,7 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
       rank_name || null,
       server || null,
       imageUrl || null,
+      ctvId || null,
       id
     ]);
 
@@ -616,7 +698,7 @@ router.get('/users', async (req, res) => {
   where = addUserSearch(where, params, search);
 
   try {
-    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users u ${where}`, params);
     const [users] = await db.query(`
       SELECT u.*,
         (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) as order_count,
@@ -654,64 +736,244 @@ router.get('/ctv', async (req, res) => {
   const limit  = 20;
   const offset = (page - 1) * limit;
 
-  let where = search ? 'WHERE 1=1' : "WHERE role='staff'";
+  let where = search ? 'WHERE 1=1' : "WHERE u.role='staff'";
   const params = [];
   where = addUserSearch(where, params, search);
 
   try {
-    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users ${where}`, params);
-    const [users] = await db.query(`
+    await ensureCtvSchema();
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM users u ${where}`, params);
+    const [ctvList] = await db.query(`
       SELECT u.*,
         (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) as order_count,
         (SELECT COALESCE(SUM(amount),0) FROM transactions t WHERE t.user_id=u.id AND t.type='deposit' AND t.status='success') as total_deposit
       FROM users u ${where}
       ORDER BY u.id DESC LIMIT ? OFFSET ?
     `, [...params, limit, offset]);
+    const [withdrawals] = await db.query(`
+      SELECT w.*, u.username
+      FROM ctv_withdrawals w
+      LEFT JOIN users u ON u.id=w.ctv_id
+      ORDER BY w.created_at DESC LIMIT 50
+    `);
+    const [ctvSales] = await db.query(`
+      SELECT cs.*, u.username, a.title, a.acc_username
+      FROM ctv_sales cs
+      LEFT JOIN users u ON u.id=cs.ctv_id
+      LEFT JOIN accounts a ON a.id=cs.account_id
+      ORDER BY cs.created_at DESC LIMIT 50
+    `);
+    const [assignableUsers] = await db.query(`
+      SELECT id, username, email
+      FROM users
+      WHERE role <> 'staff' AND role <> 'superadmin'
+      ORDER BY id DESC LIMIT 100
+    `);
+    const commissionGames = await getCtvCommissionSettings();
 
-    res.render('admin/users', {
-      layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
-      admin: req.session.user, users, total, page, totalPages: Math.ceil(total/limit), search,
-      ctvSearchMode: Boolean(search),
+    res.render('admin/ctv', {
+      layout: false, title: 'Quản Lý CTV',
+      admin: req.session.user, ctvList, withdrawals, ctvSales, assignableUsers, commissionGames, total, page,
+      totalPages: Math.ceil(total/limit), search,
+      resetUrl: '/admin/ctv', ctvSearchMode: Boolean(search),
       success_msg: req.flash('success'), error_msg: req.flash('error'),
       page_name: 'ctv'
     });
   } catch (err) {
     console.error(err);
-    let users = await localStore.readUsers();
-    if (!search) users = users.filter(u => u.role === 'staff');
+    let ctvList = await localStore.readUsers();
+    if (!search) ctvList = ctvList.filter(u => u.role === 'staff');
     if (search) {
       const key = search.toLowerCase();
       const idKey = key.replace(/^#/, '');
-      users = users.filter(u =>
+      ctvList = ctvList.filter(u =>
         String(u.id) === idKey ||
         u.username.toLowerCase().includes(key) ||
         String(u.email || '').toLowerCase().includes(key)
       );
     }
-    res.render('admin/users', {
-      layout: false, title: 'Quản Lý CTV', pageTitle: 'Quản Lý CTV', resetUrl: '/admin/ctv',
-      admin: req.session.user, users, total:users.length, page:1, totalPages:1, search,
+    const withdrawals = await localStore.getCtvWithdrawals();
+    const ctvSales = await localStore.getCtvSales();
+    const assignableUsers = (await localStore.readUsers()).filter(u => u.role !== 'staff' && u.role !== 'superadmin');
+    const runtime = await localStore.readRuntime();
+    const ctvCommission = runtime.settings?.ctv_commission || {};
+    const commissionGames = localStore.categories.map(game => ({
+      ...game,
+      commission_percent: Number(ctvCommission[game.id] ?? 100)
+    }));
+    res.render('admin/ctv', {
+      layout: false, title: 'Quản Lý CTV',
+      admin: req.session.user, ctvList, withdrawals, ctvSales, assignableUsers, commissionGames, total:ctvList.length,
+      page:1, totalPages:1, search, resetUrl: '/admin/ctv',
       ctvSearchMode: Boolean(search),
       success_msg:req.flash('success'), error_msg:['Đang dùng dữ liệu local vì MySQL chưa bật'], page_name:'ctv'
     });
   }
 });
 
+router.post('/ctv/create', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.json({ success: false, message: 'Vui lòng nhập đầy đủ username, email và mật khẩu.' });
+  }
+  if (String(password).length < 6) {
+    return res.json({ success: false, message: 'Mật khẩu CTV tối thiểu 6 ký tự.' });
+  }
+
+  try {
+    await ensureCtvSchema();
+    const [[exist]] = await db.query(
+      'SELECT id FROM users WHERE username=? OR email=?',
+      [username.trim(), email.trim().toLowerCase()]
+    );
+    if (exist) return res.json({ success: false, message: 'Username hoặc email đã tồn tại.' });
+
+    const hash = await bcrypt.hash(password, 10);
+    await db.query(
+      'INSERT INTO users (username, email, password, role, ctv_balance) VALUES (?, ?, ?, "staff", 0)',
+      [username.trim(), email.trim().toLowerCase(), hash]
+    );
+    return res.json({ success: true, message: 'Đã tạo tài khoản CTV.' });
+  } catch (err) {
+    const users = await localStore.readUsers();
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const exists = users.find(u =>
+      u.username.toLowerCase() === cleanUsername.toLowerCase() ||
+      String(u.email || '').toLowerCase() === cleanEmail
+    );
+    if (exists) return res.json({ success: false, message: 'Username hoặc email đã tồn tại.' });
+    users.push({
+      id: Date.now(),
+      username: cleanUsername,
+      email: cleanEmail,
+      password: await bcrypt.hash(password, 10),
+      role: 'staff',
+      balance: 0,
+      ctv_balance: 0,
+      is_active: 1,
+      created_at: new Date().toISOString()
+    });
+    await localStore.writeUsers(users);
+    return res.json({ success: true, message: 'Đã tạo tài khoản CTV local.' });
+  }
+});
+
+router.post('/ctv/commission', async (req, res) => {
+  const body = req.body || {};
+  const readRawPercent = gameId =>
+    body[`commission_game_${gameId}`] ??
+    body[`commission[${gameId}]`] ??
+    body.commission?.[String(gameId)];
+  const parsePercent = raw => {
+    const normalized = String(raw ?? '').replace(',', '.').trim();
+    const value = Number(normalized);
+    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  };
+  try {
+    await ensureCtvSchema();
+    const [games] = await db.query('SELECT id FROM game_categories WHERE is_active=1');
+    for (const game of games) {
+      const raw = readRawPercent(game.id);
+      if (raw === undefined) continue;
+      const pct = parsePercent(raw);
+      const key = `ctv_commission_game_${game.id}`;
+      await db.query('DELETE FROM settings WHERE `key`=?', [key]);
+      await db.query('INSERT INTO settings (`key`, value) VALUES (?, ?)', [key, String(pct)]);
+    }
+    req.flash('success', 'Đã lưu % hoa hồng CTV theo game.');
+  } catch (_) {
+    const runtime = await localStore.readRuntime();
+    runtime.settings = runtime.settings || {};
+    runtime.settings.ctv_commission = runtime.settings.ctv_commission || {};
+    for (const game of localStore.categories) {
+      const raw = readRawPercent(game.id);
+      if (raw !== undefined) runtime.settings.ctv_commission[game.id] = parsePercent(raw);
+    }
+    await localStore.writeRuntime(runtime);
+    req.flash('success', 'Đã lưu % hoa hồng CTV local.');
+  }
+  res.redirect('/admin/ctv');
+});
+
+router.post('/ctv/assign', async (req, res) => {
+  const userId = Number(req.body.user_id);
+  if (!userId) return res.json({ success: false, message: 'User không hợp lệ.' });
+
+  try {
+    await ensureCtvSchema();
+    const [[user]] = await db.query('SELECT id FROM users WHERE id=?', [userId]);
+    if (!user) return res.json({ success: false, message: 'User không tồn tại.' });
+    await db.query('UPDATE users SET role="staff", ctv_balance=COALESCE(ctv_balance,0) WHERE id=?', [userId]);
+    return res.json({ success: true, message: 'Đã gán user thành CTV.' });
+  } catch (_) {
+    const users = await localStore.readUsers();
+    const user = users.find(u => Number(u.id) === userId);
+    if (!user) return res.json({ success: false, message: 'User không tồn tại.' });
+    user.role = 'staff';
+    user.ctv_balance = Number(user.ctv_balance || 0);
+    await localStore.writeUsers(users);
+    return res.json({ success: true, message: 'Đã gán user thành CTV local.' });
+  }
+});
+
+router.post('/ctv/approve-withdrawal', async (req, res) => {
+  const id = Number(req.body.id);
+  if (!id) return res.json({ success: false, message: 'Yêu cầu không hợp lệ.' });
+
+  try {
+    await ensureCtvSchema();
+    const [[w]] = await db.query('SELECT * FROM ctv_withdrawals WHERE id=? AND status="pending"', [id]);
+    if (!w) return res.json({ success: false, message: 'Yêu cầu không tồn tại hoặc đã xử lý.' });
+    await db.query('UPDATE users SET ctv_balance=GREATEST(0, COALESCE(ctv_balance,0)-?) WHERE id=?', [w.amount, w.ctv_id]);
+    await db.query('UPDATE ctv_withdrawals SET status="approved", approved_at=NOW() WHERE id=?', [id]);
+    return res.json({ success: true, message: 'Đã duyệt yêu cầu rút tiền.' });
+  } catch (_) {
+    const ok = await localStore.approveCtvWithdrawal(id);
+    return res.json({ success: Boolean(ok), message: ok ? 'Đã duyệt yêu cầu rút tiền local.' : 'Không xử lý được yêu cầu.' });
+  }
+});
+
+router.post('/ctv/reject-withdrawal', async (req, res) => {
+  const id = Number(req.body.id);
+  if (!id) return res.json({ success: false, message: 'Yêu cầu không hợp lệ.' });
+
+  try {
+    await ensureCtvSchema();
+    const [result] = await db.query(
+      'UPDATE ctv_withdrawals SET status="rejected", rejected_at=NOW() WHERE id=? AND status="pending"',
+      [id]
+    );
+    return res.json({
+      success: result.affectedRows > 0,
+      message: result.affectedRows > 0 ? 'Đã từ chối yêu cầu rút tiền.' : 'Yêu cầu không tồn tại hoặc đã xử lý.'
+    });
+  } catch (_) {
+    const ok = await localStore.rejectCtvWithdrawal(id);
+    return res.json({ success: Boolean(ok), message: ok ? 'Đã từ chối yêu cầu local.' : 'Không xử lý được yêu cầu.' });
+  }
+});
+
 /* ─── ĐỔI ROLE USER ─── */
 router.post('/users/set-role', async (req, res) => {
-  const { user_id, role } = req.body;
+  const body = req.body || {};
+  const user_id = body.user_id;
+  const requestedRole = String(body.role || '').trim().toLowerCase();
+  const role = requestedRole === 'ctv' ? 'staff' : requestedRole;
   const validRoles = ['customer', 'staff', 'admin', 'superadmin'];
   if (!validRoles.includes(role)) return res.json({ success: false, message: 'Role không hợp lệ!' });
   // Không cho đổi role superadmin của chính mình
   if (parseInt(user_id) === req.session.user.id) return res.json({ success: false, message: 'Không thể đổi role của chính mình!' });
   try {
-    await db.query('UPDATE users SET role=? WHERE id=?', [role, user_id]);
+    await ensureCtvSchema();
+    await db.query('UPDATE users SET role=?, ctv_balance=COALESCE(ctv_balance,0) WHERE id=?', [role, user_id]);
     return res.json({ success: true, message: 'Đã cập nhật role!' });
   } catch (_) {
     const users = await localStore.readUsers();
     const user = users.find(u => Number(u.id) === Number(user_id));
     if (!user) return res.json({ success: false, message: 'User không tồn tại!' });
     user.role = role;
+    if (role === 'staff') user.ctv_balance = Number(user.ctv_balance || 0);
     await localStore.writeUsers(users);
     return res.json({ success: true, message: 'Đã cập nhật role local!' });
   }

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.ico?v=12" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=12">
+  <link rel="apple-touch-icon" href="/favicon.png?v=12">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý CTV - Admin SHOPMEBU</title>
+  <link rel="stylesheet" href="/css/style.css?v=5">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<%
+  const parseBankInfo = value => {
+    if (!value) return {};
+    if (typeof value === 'object') return value;
+    try { return JSON.parse(value); } catch (_) { return {}; }
+  };
+  const money = value => Number(value || 0).toLocaleString('vi-VN') + 'đ';
+%>
+<div class="admin-layout">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button class="admin-menu-btn" onclick="toggleAdminSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <h1>👥 Quản Lý CTV <span style="font-size:14px;font-weight:600;color:var(--text-muted);">(<%= total %> tài khoản)</span></h1>
+    </div>
+    <div class="admin-content">
+
+      <% if (success_msg && success_msg.length > 0) { %>
+        <div class="flash flash-success">✅ <%= success_msg[0] %></div>
+      <% } %>
+      <% if (error_msg && error_msg.length > 0) { %>
+        <div class="flash flash-error">❌ <%= error_msg[0] %></div>
+      <% } %>
+
+      <div class="admin-card" style="margin-bottom:18px;">
+        <div class="admin-card-body" style="display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+          <form method="GET" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="filter-group">
+              <label>Tìm CTV hoặc user để gán</label>
+              <input type="text" name="search" value="<%= search %>" placeholder="ID / username / email..." class="search-input" style="min-width:280px;">
+            </div>
+            <button class="btn btn-primary btn-sm" type="submit">🔍 Tìm</button>
+            <a href="/admin/ctv" class="btn btn-outline btn-sm">↺ Reset</a>
+          </form>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openCreateCtv()">+ Tạo CTV Mới</button>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>Gán User Có Sẵn Thành CTV</h3></div>
+        <div class="admin-card-body" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="filter-group" style="min-width:320px;flex:1;">
+            <label>Chọn user</label>
+            <select id="assignUserId" class="search-input" style="width:100%;">
+              <option value="">-- Chọn user để phong CTV --</option>
+              <% (assignableUsers || []).forEach(user => { %>
+                <option value="<%= user.id %>">#<%= user.id %> - <%= user.username %><%= user.email ? ' (' + user.email + ')' : '' %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="assignSelectedCtv()">Gán CTV</button>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>% Hoa Hồng CTV Theo Game</h3></div>
+        <div class="admin-card-body">
+          <form method="POST" action="/admin/ctv/commission" class="admin-form">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+              <% (commissionGames || []).forEach(game => { %>
+                <div class="form-group">
+                  <label><%= game.name %></label>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <input type="text" inputmode="decimal" name="commission_game_<%= game.id %>" value="<%= game.commission_percent %>" placeholder="0 - 100">
+                    <span style="font-weight:800;color:var(--text-muted);">%</span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+            <button class="btn btn-primary btn-sm" type="submit">Lưu % Hoa Hồng</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>Danh Sách CTV</h3></div>
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Số Dư CTV</th>
+                  <th>Role</th>
+                  <th>Trạng Thái</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (ctvList.length > 0) { %>
+                  <% ctvList.forEach(ctv => { %>
+                    <tr>
+                      <td><strong>#<%= ctv.id %></strong></td>
+                      <td style="font-weight:800;"><%= ctv.username %></td>
+                      <td style="font-size:12px;color:var(--text-muted);"><%= ctv.email || '—' %></td>
+                      <td style="font-weight:900;color:#16a34a;"><%= money(ctv.ctv_balance) %></td>
+                      <td><span class="badge-role badge-<%= ctv.role %>"><%= ctv.role === 'staff' ? 'CTV' : ctv.role %></span></td>
+                      <td><%= ctv.is_active === 0 ? 'Khoá' : 'Hoạt động' %></td>
+                      <td>
+                        <% if (ctv.role !== 'staff') { %>
+                          <button class="btn btn-primary btn-sm" onclick="assignCtv(<%= ctv.id %>)">Gán CTV</button>
+                        <% } else { %>
+                          <span style="font-size:12px;color:var(--text-muted);">Đã là CTV</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted);">Không tìm thấy CTV hoặc user phù hợp</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>Lịch Sử Acc CTV Bán Được</h3></div>
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Thời Gian</th>
+                  <th>CTV</th>
+                  <th>Acc</th>
+                  <th>Số Tiền</th>
+                  <th>%</th>
+                  <th>Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (ctvSales && ctvSales.length > 0) { %>
+                  <% ctvSales.forEach(s => { %>
+                    <tr>
+                      <td><%= new Date(s.created_at).toLocaleString('vi-VN') %></td>
+                      <td><%= s.username || ('CTV #' + s.ctv_id) %></td>
+                      <td>#<%= s.account_id %> - <%= s.title || s.acc_username || 'Acc đã bán' %></td>
+                      <td style="font-weight:900;color:#16a34a;">+<%= money(s.amount) %></td>
+                      <td><%= Number(s.commission_percent || 100).toLocaleString('vi-VN') %>%</td>
+                      <td><span class="status-badge success">Đã cộng tiền</span></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có acc CTV bán được</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header"><h3>Yêu Cầu Rút Tiền CTV</h3></div>
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>CTV</th>
+                  <th>Số Tiền</th>
+                  <th>Ngân Hàng</th>
+                  <th>Số TK</th>
+                  <th>Chủ TK</th>
+                  <th>Trạng Thái</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (withdrawals.length > 0) { %>
+                  <% withdrawals.forEach(w => { const bank = parseBankInfo(w.bank_info); %>
+                    <tr>
+                      <td><strong>#<%= w.id %></strong></td>
+                      <td><%= w.username || ('CTV #' + w.ctv_id) %></td>
+                      <td style="font-weight:900;"><%= money(w.amount) %></td>
+                      <td><%= bank.bank_name || '-' %></td>
+                      <td><%= bank.bank_number || '-' %></td>
+                      <td><%= bank.bank_holder || '-' %></td>
+                      <td>
+                        <span class="status-badge <%= w.status === 'approved' ? 'success' : w.status === 'pending' ? 'pending' : 'failed' %>">
+                          <%= w.status === 'approved' ? 'Đã duyệt' : w.status === 'pending' ? 'Chờ duyệt' : 'Đã từ chối' %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if (w.status === 'pending') { %>
+                          <button class="btn btn-primary btn-sm" onclick="approveWithdrawal(<%= w.id %>)">Duyệt</button>
+                          <button class="btn btn-outline btn-sm" onclick="rejectWithdrawal(<%= w.id %>)" style="color:var(--primary);border-color:var(--primary);">Từ chối</button>
+                        <% } else { %>
+                          <span style="font-size:12px;color:var(--text-muted);">Đã xử lý</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có yêu cầu rút tiền</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createCtvModal" style="display:none;">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeCreateCtv()">✕</button>
+    <h2>Tạo Tài Khoản CTV</h2>
+    <div class="admin-form">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="ctvUser" placeholder="username">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="ctvEmail" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" id="ctvPass" placeholder="Tối thiểu 6 ký tự">
+      </div>
+      <div id="ctvMsg" style="font-size:13px;margin-bottom:12px;display:none;"></div>
+      <button class="btn btn-primary" onclick="createCtv()" style="width:100%;">Tạo CTV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCreateCtv() {
+  document.getElementById('createCtvModal').style.display = 'flex';
+}
+function closeCreateCtv() {
+  document.getElementById('createCtvModal').style.display = 'none';
+}
+async function createCtv() {
+  const msg = document.getElementById('ctvMsg');
+  const payload = {
+    username: document.getElementById('ctvUser').value.trim(),
+    email: document.getElementById('ctvEmail').value.trim(),
+    password: document.getElementById('ctvPass').value
+  };
+  const r = await fetch('/admin/ctv/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  msg.style.display = 'block';
+  msg.style.color = d.success ? '#16a34a' : 'var(--primary)';
+  msg.textContent = d.message;
+  if (d.success) setTimeout(() => location.reload(), 900);
+}
+async function assignCtv(userId) {
+  if (!confirm('Gán user này thành CTV?')) return;
+  const r = await fetch('/admin/ctv/assign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId })
+  });
+  const d = await r.json();
+  alert(d.message);
+  if (d.success) location.reload();
+}
+function assignSelectedCtv() {
+  const userId = document.getElementById('assignUserId').value;
+  if (!userId) return alert('Chọn user trước đã.');
+  assignCtv(userId);
+}
+async function approveWithdrawal(id) {
+  if (!confirm('Duyệt yêu cầu rút tiền này?')) return;
+  const r = await fetch('/admin/ctv/approve-withdrawal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  const d = await r.json();
+  alert(d.message);
+  if (d.success) location.reload();
+}
+async function rejectWithdrawal(id) {
+  if (!confirm('Từ chối yêu cầu này?')) return;
+  const r = await fetch('/admin/ctv/reject-withdrawal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  const d = await r.json();
+  alert(d.message);
+  if (d.success) location.reload();
+}
+</script>
+</body>
+</html>

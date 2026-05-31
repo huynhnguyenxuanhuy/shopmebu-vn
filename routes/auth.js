@@ -63,6 +63,39 @@ async function createLocalUser({ username, email, password, provider = 'local' }
   return { user };
 }
 
+async function ensureCtvSchema() {
+  const [balanceCol] = await db.query("SHOW COLUMNS FROM users LIKE 'ctv_balance'");
+  if (!balanceCol.length) await db.query('ALTER TABLE users ADD COLUMN ctv_balance DECIMAL(15,0) DEFAULT 0');
+
+  const [ctvCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'ctv_id'");
+  if (!ctvCol.length) await db.query('ALTER TABLE accounts ADD COLUMN ctv_id INT DEFAULT NULL');
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ctv_withdrawals (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctv_id INT NOT NULL,
+      amount DECIMAL(15,0) NOT NULL,
+      bank_info TEXT DEFAULT NULL,
+      status ENUM('pending','approved','rejected') DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      approved_at DATETIME DEFAULT NULL,
+      rejected_at DATETIME DEFAULT NULL,
+      FOREIGN KEY (ctv_id) REFERENCES users(id)
+    ) ENGINE=InnoDB
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ctv_sales (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctv_id INT NOT NULL,
+      account_id INT NOT NULL,
+      order_id INT DEFAULT NULL,
+      amount DECIMAL(15,0) NOT NULL,
+      status ENUM('credited') DEFAULT 'credited',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+  `);
+}
+
 async function findLocalUser(login, password) {
   const key = login.trim().toLowerCase();
   const users = await readLocalUsers();
@@ -248,13 +281,37 @@ router.get('/tai-khoan', async (req, res) => {
       ORDER BY created_at DESC LIMIT 30
     `, [userId]);
 
-    // Sync session balance
+    let ctvSales = [];
+    let ctvWithdrawals = [];
+    if (user.role === 'staff') {
+      await ensureCtvSchema();
+      [ctvSales] = await db.query(`
+        SELECT cs.*, a.acc_username, a.title, a.rank, g.name AS game_name
+        FROM ctv_sales cs
+        LEFT JOIN accounts a ON a.id=cs.account_id
+        LEFT JOIN game_categories g ON g.id=a.category_id
+        WHERE cs.ctv_id=?
+        ORDER BY cs.created_at DESC LIMIT 30
+      `, [userId]);
+      [ctvWithdrawals] = await db.query(`
+        SELECT * FROM ctv_withdrawals
+        WHERE ctv_id=?
+        ORDER BY created_at DESC LIMIT 30
+      `, [userId]);
+    }
+
+    // Sync session user data after admin changes role/balance.
     req.session.user.balance = Number(user.balance);
+    req.session.user.role = user.role || 'customer';
+    req.session.user.ctv_balance = Number(user.ctv_balance || 0);
+    req.session.user.email = user.email;
+    req.session.user.avatar = user.avatar;
 
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
       page: 'account',
-      user, orders, transactions
+      user, orders, transactions, ctvSales, ctvWithdrawals,
+      siteUrl: `${req.protocol}://${req.get('host')}`
     });
   } catch (err) {
     console.error(err);
@@ -262,13 +319,18 @@ router.get('/tai-khoan', async (req, res) => {
     const localUser = users.find(u => Number(u.id) === Number(req.session.user.id)) || req.session.user;
     const orders = await localStore.getUserOrders(req.session.user.id);
     const transactions = await localStore.getUserTransactions(req.session.user.id);
+    const ctvSales = localUser.role === 'staff' ? await localStore.getCtvSales(req.session.user.id) : [];
+    const ctvWithdrawals = localUser.role === 'staff' ? await localStore.getCtvWithdrawals(req.session.user.id) : [];
     req.session.user.balance = Number(localUser.balance || 0);
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
       page: 'account',
       user: { ...req.session.user, ...localUser },
       orders,
-      transactions
+      transactions,
+      ctvSales,
+      ctvWithdrawals,
+      siteUrl: `${req.protocol}://${req.get('host')}`
     });
   }
 });

@@ -170,6 +170,12 @@ img { max-width: 100%; }
 }
 .user-name { font-size:13px; font-weight:700; color:var(--text); }
 .user-balance { font-size:11px; color:var(--primary); font-weight:700; }
+.ctv-mini-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-left:5px; padding:1px 5px; border-radius:999px;
+  background:#dcfce7; color:#15803d; font-size:9px; font-weight:900;
+  vertical-align:middle;
+}
 .dropdown-menu-custom {
   position:absolute; right:0; top:calc(100% + 10px);
   background:#fff; border:1.5px solid var(--border);

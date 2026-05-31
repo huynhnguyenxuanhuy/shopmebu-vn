@@ -9,7 +9,9 @@
     <div class="topbar-left">
       <span><span class="online-dot"></span> Giao dịch tự động 24/7</span>
       <span class="divider"></span>
-      <a href="https://zalo.me/g/gssfxa652" target="_blank">📱 Zalo Group</a>
+      <a href="https://zalo.me/g/gssfxa652" target="_blank">🔵 Zalo HAVL</a>
+        <span class="divider"></span>
+        <a href="https://zalo.me/g/desufk022" target="_blank">🔵 Zalo GHKN</a>
       <span class="divider"></span>
       <a href="https://www.facebook.com/share/18jMzbCfXh/" target="_blank">📘 Facebook Shop</a>
     </div>
@@ -71,13 +73,27 @@
           <div class="user-toggle">
             <div class="user-avatar">👤</div>
             <div>
-              <div class="user-name"><%= user.username %></div>
-              <div class="user-balance">💰 <span id="headerBalance"><%= (user.balance || 0).toLocaleString('vi-VN') %></span>đ</div>
+              <div class="user-name">
+                <%= user.username %>
+                <% if (user.role === 'staff') { %>
+                  <span class="ctv-mini-badge">CTV</span>
+                <% } %>
+              </div>
+              <div class="user-balance">
+                <% if (user.role === 'staff') { %>
+                  🤝 <span id="headerCtvBalance"><%= (user.ctv_balance || 0).toLocaleString('vi-VN') %></span>đ
+                <% } else { %>
+                  💰 <span id="headerBalance"><%= (user.balance || 0).toLocaleString('vi-VN') %></span>đ
+                <% } %>
+              </div>
             </div>
             <span style="font-size:10px;color:#666;">▼</span>
           </div>
           <div class="dropdown-menu-custom">
             <a href="/tai-khoan">👤 Hồ sơ cá nhân</a>
+            <% if (user.role === 'staff') { %>
+              <a href="/tai-khoan#ctv" style="color:#16a34a;font-weight:800;">🤝 Khu CTV / Link giới thiệu</a>
+            <% } %>
             <a href="/lich-su-mua">🛒 Lịch sử mua hàng</a>
             <a href="/lich-su-nap">💳 Lịch sử nạp tiền</a>
             <a href="/nap-tien">💰 Nạp thêm tiền</a>
@@ -161,11 +177,11 @@
     <!-- GAME VPLAY KHÁC -->
     <div class="nav-item">
       <a class="nav-link" href="/game/vplay-khac">
-        🎲 Game VPlay Khác
+        🎲 Code VIP
         <span class="arrow">▾</span>
       </a>
       <div class="nav-dropdown">
-        <div class="nav-dropdown-header">🎲 Game VPlay Khác</div>
+        <div class="nav-dropdown-header">🎲 Code VIP</div>
         <a href="/game/vplay-khac/tu-chon">Acc Tự Chọn</a>
         <a href="/game/vplay-khac/random">Acc Random Giá Rẻ</a>
         <a href="/game/vplay-khac/vip">Acc VIP</a>
@@ -218,7 +234,7 @@
       <a href="/">🏠 Trang Chủ</a>
       <a href="/game/huyen-anh-vo-lam">⚔️ Huyền Ảnh Võ Lâm</a>
       <a href="/game/giang-ho-ky-ngo">🐉 Giang Hồ Kỳ Ngộ</a>
-      <a href="/game/vplay-khac">🎲 Game VPlay Khác</a>
+      <a href="/game/vplay-khac">🎲 Code VIP</a>
       <a href="/nap-tien" style="color:var(--accent);font-weight:800;">💳 Nạp Tiền</a>
       <a href="/thong-tin-shop">ℹ️ Thông Tin Shop</a>
       <div class="divider-line"></div>

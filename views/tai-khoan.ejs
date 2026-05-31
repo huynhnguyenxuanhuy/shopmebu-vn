@@ -24,7 +24,7 @@
       </div>
       <div class="user-meta">
         <h1 class="user-name"><%= user.username %></h1>
-        <span class="user-role role-<%= user.role %>"><%= user.role %></span>
+        <span class="user-role role-<%= user.role %>"><%= user.role === 'staff' ? 'CTV' : user.role %></span>
         <p class="user-email"><i class="fas fa-envelope"></i> <%= user.email %></p>
       </div>
       <div class="user-balance-big">
@@ -34,10 +34,75 @@
       </div>
     </div>
 
+
+<% if (user.role === 'staff') { %>
+<div class="user-balance-big" style="margin-top:12px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac">
+  <span class="ub-label">Số dư CTV</span>
+  <span class="ub-value" style="color:#16a34a"><%= Number(user.ctv_balance||0).toLocaleString('vi-VN') %>đ</span>
+  <button onclick="document.getElementById('ctvWithdrawModal').style.display='flex'" class="btn-naptien" style="background:#16a34a"><i class="fas fa-money-bill-wave"></i> Rút Tiền</button>
+</div>
+<div class="admin-card" style="margin-top:12px;">
+  <div class="admin-card-body">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Link giới thiệu CTV</div>
+        <input id="ctvRefLink" readonly value="<%= (typeof siteUrl !== 'undefined' ? siteUrl : '') || '' %>/?ctv=<%= user.id %>" style="width:100%;padding:9px;border:1px solid rgba(255,255,255,0.14);border-radius:8px;background:rgba(255,255,255,0.04);color:#fff;">
+      </div>
+      <button type="button" onclick="copyCtvLink()" class="btn-naptien" style="border:none;cursor:pointer;"><i class="fas fa-copy"></i> Copy Link</button>
+    </div>
+  </div>
+</div>
+<!-- CTV Withdraw Modal -->
+<div id="ctvWithdrawModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center">
+  <div style="background:#fff;padding:28px;border-radius:14px;width:380px;max-width:95vw">
+    <h3 style="margin-bottom:16px">Yêu Cầu Rút Tiền CTV</h3>
+    <p style="margin-bottom:12px;color:#555">Số dư hiện tại: <strong style="color:#16a34a"><%= Number(user.ctv_balance||0).toLocaleString('vi-VN') %>đ</strong></p>
+    <input id="wAmt" type="number" placeholder="Số tiền muốn rút" style="width:100%;margin-bottom:10px;padding:9px;border:1px solid #ddd;border-radius:7px;box-sizing:border-box">
+    <input id="wBank" placeholder="Tên ngân hàng (VD: TPBank)" style="width:100%;margin-bottom:10px;padding:9px;border:1px solid #ddd;border-radius:7px;box-sizing:border-box">
+    <input id="wNum" placeholder="Số tài khoản" style="width:100%;margin-bottom:10px;padding:9px;border:1px solid #ddd;border-radius:7px;box-sizing:border-box">
+    <input id="wHolder" placeholder="Tên chủ tài khoản" style="width:100%;margin-bottom:14px;padding:9px;border:1px solid #ddd;border-radius:7px;box-sizing:border-box">
+    <div style="display:flex;gap:10px">
+      <button onclick="submitWithdraw()" style="flex:1;background:#16a34a;color:#fff;border:none;padding:10px;border-radius:7px;cursor:pointer;font-weight:600">Gửi Yêu Cầu</button>
+      <button onclick="document.getElementById('ctvWithdrawModal').style.display='none'" style="flex:1;border:1px solid #ddd;padding:10px;border-radius:7px;cursor:pointer">Huỷ</button>
+    </div>
+    <p id="wMsg" style="margin-top:10px;text-align:center"></p>
+  </div>
+</div>
+<script>
+async function submitWithdraw() {
+  const amount = document.getElementById('wAmt').value;
+  const bank_name = document.getElementById('wBank').value;
+  const bank_number = document.getElementById('wNum').value;
+  const bank_holder = document.getElementById('wHolder').value;
+  if (!amount || !bank_name || !bank_number || !bank_holder) { document.getElementById('wMsg').textContent='Vui lòng điền đầy đủ thông tin'; return; }
+  const r = await fetch('/api/ctv/withdraw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount,bank_name,bank_number,bank_holder})});
+  const d = await r.json();
+  document.getElementById('wMsg').style.color = d.success ? 'green' : 'red';
+  document.getElementById('wMsg').textContent = d.message;
+  if (d.success) setTimeout(() => location.reload(), 1500);
+}
+async function copyCtvLink() {
+  const el = document.getElementById('ctvRefLink');
+  const link = el.value || (location.origin + '/?ctv=<%= user.id %>');
+  try {
+    await navigator.clipboard.writeText(link);
+    alert('Đã copy link giới thiệu CTV.');
+  } catch (_) {
+    el.select();
+    document.execCommand('copy');
+    alert('Đã copy link giới thiệu CTV.');
+  }
+}
+</script>
+<% } %>
+
     <%# TABS %>
     <div class="account-tabs">
-      <button class="tab-btn active" onclick="showTab('orders')"><i class="fas fa-shopping-bag"></i> Lịch Sử Mua</button>
-      <button class="tab-btn" onclick="showTab('transactions')"><i class="fas fa-exchange-alt"></i> Giao Dịch</button>
+      <button class="tab-btn active" onclick="showTab('orders', this)"><i class="fas fa-shopping-bag"></i> Lịch Sử Mua</button>
+      <button class="tab-btn" onclick="showTab('transactions', this)"><i class="fas fa-exchange-alt"></i> Giao Dịch</button>
+      <% if (user.role === 'staff') { %>
+        <button class="tab-btn" onclick="showTab('ctv', this)"><i class="fas fa-handshake"></i> CTV</button>
+      <% } %>
     </div>
 
     <%# TAB: ORDERS %>
@@ -121,6 +186,88 @@
       </div>
       <% } %>
     </div>
+
+    <% if (user.role === 'staff') { %>
+    <div class="tab-content" id="tab-ctv">
+      <div class="admin-card" style="margin-bottom:18px;">
+        <div class="admin-card-header"><h3>Lịch sử bán acc CTV</h3></div>
+        <div class="admin-card-body">
+          <% if (ctvSales && ctvSales.length > 0) { %>
+          <div class="tx-table-wrap">
+            <table class="tx-table">
+              <thead>
+                <tr>
+                  <th>Thời Gian</th>
+                  <th>Acc</th>
+                  <th>Game</th>
+                  <th>Số Tiền</th>
+                  <th>%</th>
+                  <th>Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% ctvSales.forEach(s => { %>
+                <tr>
+                  <td><%= new Date(s.created_at).toLocaleString('vi-VN') %></td>
+                  <td>#<%= s.account_id %> - <%= s.title || s.acc_username || 'Acc đã bán' %></td>
+                  <td><%= s.game_name || 'N/A' %></td>
+                  <td class="tx-plus">+<%= Number(s.amount).toLocaleString('vi-VN') %>đ</td>
+                  <td><%= Number(s.commission_percent || 100).toLocaleString('vi-VN') %>%</td>
+                  <td><span class="status-badge success">Đã cộng tiền</span></td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-handshake"></i>
+            <p>Chưa có acc CTV nào bán được</p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header"><h3>Lịch sử rút tiền CTV</h3></div>
+        <div class="admin-card-body">
+          <% if (ctvWithdrawals && ctvWithdrawals.length > 0) { %>
+          <div class="tx-table-wrap">
+            <table class="tx-table">
+              <thead>
+                <tr>
+                  <th>Thời Gian</th>
+                  <th>Số Tiền</th>
+                  <th>Ngân Hàng</th>
+                  <th>Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% ctvWithdrawals.forEach(w => { %>
+                <tr>
+                  <td><%= new Date(w.created_at).toLocaleString('vi-VN') %></td>
+                  <td><%= Number(w.amount).toLocaleString('vi-VN') %>đ</td>
+                  <td class="tx-note"><%= w.bank_info || '—' %></td>
+                  <td>
+                    <span class="status-badge <%= w.status === 'approved' ? 'success' : w.status %>">
+                      <%= w.status === 'approved' ? 'Đã duyệt' : w.status === 'pending' ? 'Chờ duyệt' : 'Từ chối' %>
+                    </span>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-money-bill-wave"></i>
+            <p>Chưa có yêu cầu rút tiền</p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <% } %>
 
   </div>
 </div>
@@ -258,12 +405,18 @@
 </style>
 
 <script>
-function showTab(name) {
+function showTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.account-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  const tab = document.getElementById('tab-' + name);
+  if (!tab) return;
+  tab.classList.add('active');
+  const activeBtn = btn || document.querySelector(`.account-tabs .tab-btn[onclick*="'${name}'"]`);
+  if (activeBtn) activeBtn.classList.add('active');
 }
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.hash === '#ctv') showTab('ctv');
+});
 function toggleAcc(btn, user, pass, info) {
   document.getElementById('accModal').style.display = 'flex';
   document.getElementById('accModalBody').innerHTML = `

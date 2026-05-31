@@ -59,6 +59,16 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
+// CTV referral link: /?ctv=USER_ID
+app.use((req, res, next) => {
+  const rawCtv = req.query.ctv || req.query.ref;
+  const ctvId = Number(String(rawCtv || '').replace(/^#/, ''));
+  if (Number.isInteger(ctvId) && ctvId > 0) {
+    req.session.ctv_ref = ctvId;
+  }
+  next();
+});
+
 // ===== BASIC FIREWALL =====
 app.use(rateLimit({
   windowMs: 60 * 1000,
@@ -98,10 +108,35 @@ app.use(sameOriginGuard);
 const db = require('./config/db');
 const localStore = require('./utils/localStore');
 app.use(async (req, res, next) => {
-  res.locals.user        = req.session.user || null;
   res.locals.success_msg = req.flash('success');
   res.locals.error_msg   = req.flash('error');
   res.locals.notifCount  = 0;
+
+  // Sync session user so role changes from admin show immediately on the storefront.
+  if (req.session.user) {
+    try {
+      const [[freshUser]] = await db.query('SELECT * FROM users WHERE id=?', [req.session.user.id]);
+      if (freshUser) {
+        req.session.user = {
+          ...req.session.user,
+          username: freshUser.username,
+          email: freshUser.email,
+          role: freshUser.role || 'customer',
+          balance: Number(freshUser.balance || 0),
+          ctv_balance: Number(freshUser.ctv_balance || 0),
+          avatar: freshUser.avatar || null
+        };
+      }
+    } catch (_) {
+      try {
+        const users = await localStore.readUsers();
+        const localUser = users.find(u => Number(u.id) === Number(req.session.user.id));
+        if (localUser) req.session.user = { ...req.session.user, ...localUser };
+      } catch (_) {}
+    }
+  }
+
+  res.locals.user = req.session.user || null;
 
   // Đếm thông báo chưa đọc nếu đã đăng nhập
   if (req.session.user) {

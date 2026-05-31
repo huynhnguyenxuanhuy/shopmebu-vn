@@ -35,7 +35,7 @@ async function creditUser(userId, amount, method, ref, content) {
     // Lấy số dư hiện tại
     const [[user]] = await conn.query('SELECT balance FROM users WHERE id=? FOR UPDATE', [userId]);
     const before = Number(user.balance);
-    const bonus  = Math.floor(amount * 0.10); // +10%
+    const bonus = 0; // bonus disabled // +10%
     const total  = amount + bonus;
     const after  = before + total;
 
@@ -180,6 +180,7 @@ router.post('/buy/:accId', async (req, res) => {
   let conn;
 
   try {
+    await ensureCtvSchema();
     conn = await db.getConnection();
     await conn.beginTransaction();
 
@@ -224,6 +225,27 @@ router.post('/buy/:accId', async (req, res) => {
       VALUES (?, 'purchase', ?, ?, ?, 'success', ?)
     `, [userId, acc.price, before, after, `Mua acc #${accId}`]);
 
+    const referralCtvId = Number(req.session.ctv_ref || 0);
+    const ctvId = Number(acc.ctv_id || referralCtvId || 0);
+    if (ctvId && ctvId !== Number(userId)) {
+      const [[commissionRow]] = await conn.query(
+        'SELECT value FROM settings WHERE `key`=?',
+        [`ctv_commission_game_${acc.category_id}`]
+      );
+      const commissionPercent = Math.max(0, Math.min(100, Number(commissionRow?.value ?? 100)));
+      const amount = Math.floor(Number(acc.price) * commissionPercent / 100);
+      const [ctvCredit] = await conn.query(
+        'UPDATE users SET ctv_balance=COALESCE(ctv_balance,0)+? WHERE id=? AND role="staff"',
+        [amount, ctvId]
+      );
+      if (ctvCredit.affectedRows > 0) {
+        await conn.query(`
+          INSERT INTO ctv_sales (ctv_id, account_id, order_id, amount, commission_percent, status)
+          VALUES (?, ?, ?, ?, ?, 'credited')
+        `, [ctvId, accId, orderResult.insertId, amount, commissionPercent]);
+      }
+    }
+
     await conn.commit();
 
     // Cập nhật session balance
@@ -247,7 +269,7 @@ router.post('/buy/:accId', async (req, res) => {
     console.error('Lỗi mua acc:', err);
     if (conn) await conn.rollback();
     try {
-      const result = await localStore.buyAccount(userId, accId);
+      const result = await localStore.buyAccount(userId, accId, req.session.ctv_ref);
       if (!result.success) return res.json(result);
       req.session.user.balance = result.new_balance;
       return res.json({
@@ -302,6 +324,87 @@ router.get('/me/balance', async (req, res) => {
   } catch (err) {
     console.warn('Không lấy được số dư:', err.code || err.message);
     res.json({ balance: req.session.user.balance ?? null });
+  }
+});
+
+
+// ===== CTV RUT TIEN =====
+async function ensureCtvSchema() {
+  const [balanceCol] = await db.query("SHOW COLUMNS FROM users LIKE 'ctv_balance'");
+  if (!balanceCol.length) {
+    await db.query('ALTER TABLE users ADD COLUMN ctv_balance DECIMAL(15,0) DEFAULT 0');
+  }
+  const [ctvCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'ctv_id'");
+  if (!ctvCol.length) {
+    await db.query('ALTER TABLE accounts ADD COLUMN ctv_id INT DEFAULT NULL');
+  }
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ctv_withdrawals (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctv_id INT NOT NULL,
+      amount DECIMAL(15,0) NOT NULL,
+      bank_info TEXT DEFAULT NULL,
+      status ENUM('pending','approved','rejected') DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      approved_at DATETIME DEFAULT NULL,
+      rejected_at DATETIME DEFAULT NULL,
+      FOREIGN KEY (ctv_id) REFERENCES users(id)
+    ) ENGINE=InnoDB
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ctv_sales (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctv_id INT NOT NULL,
+      account_id INT NOT NULL,
+      order_id INT DEFAULT NULL,
+      amount DECIMAL(15,0) NOT NULL,
+      commission_percent DECIMAL(5,2) DEFAULT 100,
+      status ENUM('credited') DEFAULT 'credited',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+  `);
+  const [percentCol] = await db.query("SHOW COLUMNS FROM ctv_sales LIKE 'commission_percent'");
+  if (!percentCol.length) {
+    await db.query('ALTER TABLE ctv_sales ADD COLUMN commission_percent DECIMAL(5,2) DEFAULT 100');
+  }
+}
+
+router.post('/ctv/withdraw', async (req, res) => {
+  if (!req.session.user) return res.json({ success: false, message: 'Vui lòng đăng nhập.' });
+  const { amount, bank_name, bank_number, bank_holder } = req.body;
+  const amt = Number(amount);
+  if (!amt || amt < 10000) return res.json({ success: false, message: 'Số tiền rút tối thiểu là 10.000đ.' });
+  if (!bank_name || !bank_number || !bank_holder) {
+    return res.json({ success: false, message: 'Vui lòng nhập đầy đủ thông tin ngân hàng.' });
+  }
+  const bankInfo = { bank_name, bank_number, bank_holder };
+
+  try {
+    await ensureCtvSchema();
+    const [[user]] = await db.query('SELECT role, COALESCE(ctv_balance,0) AS ctv_balance FROM users WHERE id=?', [req.session.user.id]);
+    if (!user || user.role !== 'staff') {
+      return res.json({ success: false, message: 'Tài khoản này không có quyền CTV.' });
+    }
+    if (Number(user.ctv_balance || 0) < amt) {
+      return res.json({ success: false, message: 'Số dư CTV không đủ.' });
+    }
+    const [result] = await db.query(
+      'INSERT INTO ctv_withdrawals (ctv_id, amount, bank_info, status) VALUES (?, ?, ?, "pending")',
+      [req.session.user.id, amt, JSON.stringify(bankInfo)]
+    );
+    return res.json({
+      success: true,
+      message: 'Yêu cầu rút tiền đã gửi, chờ admin duyệt.',
+      withdrawal: { id: result.insertId, ctv_id: req.session.user.id, amount: amt, bank_info: bankInfo, status: 'pending' }
+    });
+  } catch (err) {
+    const users = await localStore.readUsers();
+    const user = users.find(u => Number(u.id) === Number(req.session.user.id));
+    if (!user || user.role !== 'staff' || (Number(user.ctv_balance) || 0) < amt) {
+      return res.json({ success: false, message: 'Số dư CTV không đủ.' });
+    }
+    const w = await localStore.createCtvWithdrawal(req.session.user.id, amt, bankInfo);
+    return res.json({ success: true, message: 'Yêu cầu rút tiền đã gửi, chờ admin duyệt.', withdrawal: w });
   }
 });
 
