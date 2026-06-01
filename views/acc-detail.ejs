@@ -226,7 +226,7 @@
 .thumb-item.active, .thumb-item:hover { border-color: var(--primary); }
 
 .detail-id { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
-.detail-rank { font-size: 1.8rem; color: var(--text); margin-bottom: 4px; }
+.detail-rank { font-size: 1.8rem; color: var(--text) !important; margin-bottom: 4px; }
 .detail-title-text { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
 
 .detail-specs {
@@ -240,7 +240,12 @@
 .spec-item { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
 .spec-item i { color: var(--primary); width: 16px; }
 .spec-key { color: var(--text-muted); }
-.spec-val { color: var(--text); font-weight: 700; }
+.spec-val { color: var(--text) !important; font-weight: 700; }
+.detail-info .detail-rank,
+.detail-info .spec-val {
+  color: var(--text) !important;
+  text-shadow: none !important;
+}
 
 .detail-price-box {
   background: var(--card-bg);

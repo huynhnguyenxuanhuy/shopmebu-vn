@@ -21,7 +21,8 @@ const ctvUpload = multer({
       cb(null, dir);
     },
     filename: (req, file, cb) => {
-      cb(null, 'ctv_' + Date.now() + path.extname(file.originalname));
+      const unique = Date.now() + '_' + Math.round(Math.random() * 1e9);
+      cb(null, 'ctv_' + unique + path.extname(file.originalname));
     }
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -376,7 +377,10 @@ router.get('/tai-khoan', async (req, res) => {
   }
 });
 
-router.post('/ctv/dang-acc', ctvUpload.single('image'), async (req, res) => {
+router.post('/ctv/dang-acc', ctvUpload.fields([
+  { name: 'images', maxCount: 8 },
+  { name: 'image', maxCount: 8 }
+]), async (req, res) => {
   if (!req.session.user) {
     req.flash('error', 'Vui lòng đăng nhập!');
     return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
@@ -384,7 +388,11 @@ router.post('/ctv/dang-acc', ctvUpload.single('image'), async (req, res) => {
 
   const { game_slug, acc_username, acc_password, acc_info, title, price, rank_name, server, acc_type } = req.body;
   const cleanPrice = Number(price || 0);
-  const imageUrl = req.file ? '/uploads/acc/' + req.file.filename : null;
+  const uploadedFiles = [
+    ...((req.files && req.files.images) || []),
+    ...((req.files && req.files.image) || [])
+  ];
+  const imageUrl = uploadedFiles.map(file => '/uploads/acc/' + file.filename).join(',') || null;
   if (!game_slug || !acc_username || !acc_password || cleanPrice <= 0) {
     req.flash('error', 'Vui lòng nhập đầy đủ game, tài khoản, mật khẩu và giá acc.');
     return res.redirect('/tai-khoan#ctv');
