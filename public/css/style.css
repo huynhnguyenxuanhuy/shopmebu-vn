@@ -27,6 +27,12 @@
 
 * { margin:0; padding:0; box-sizing:border-box; }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif;
   background:
@@ -34,11 +40,15 @@ body {
     var(--bg);
   color: var(--text);
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
+  position: relative;
+  overscroll-behavior-x: none;
 }
 
 a { text-decoration: none; color: inherit; }
-img { max-width: 100%; }
+img, video, canvas, svg { max-width: 100%; }
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg2); }
@@ -423,6 +433,34 @@ img { max-width: 100%; }
 
 /* --- MOBILE (≤768px) --- */
 @media (max-width:768px) {
+  html,
+  body {
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  body { touch-action:pan-y; }
+
+  .topbar,
+  .site-header,
+  .main-nav,
+  .site-content,
+  .site-footer {
+    max-width:100vw;
+    overflow-x:hidden;
+  }
+
+  .topbar-inner,
+  .header-inner,
+  .nav-inner,
+  .site-content,
+  .container,
+  .footer-top,
+  .footer-bottom {
+    max-width:100%;
+    min-width:0;
+  }
 
   /* TOPBAR */
   .topbar { display:none; }
@@ -432,6 +470,13 @@ img { max-width: 100%; }
   .header-inner {
     flex-wrap:nowrap; gap:10px; padding:0 14px;
   }
+  .header-actions,
+  .user-menu { min-width:0; }
+  .dropdown-menu-custom {
+    right:0;
+    max-width:calc(100vw - 24px);
+  }
+  .mobile-nav-panel { max-width:calc(100vw - 32px); }
   .search-wrap { display:none; } /* hidden, accessible via icon or search page */
   .btn-napien span { display:none; } /* icon only */
   .btn-napien { padding:10px 14px; }
