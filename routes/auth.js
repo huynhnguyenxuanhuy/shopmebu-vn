@@ -143,10 +143,12 @@ router.get('/dang-ky', (req, res) => {
 });
 
 router.post('/dang-ky', async (req, res) => {
-  const { username, email, password, password2 } = req.body;
+  const { username, password, password2 } = req.body;
+  const cleanUsername = String(username || '').trim();
+  const email = req.body.email || `${cleanUsername.toLowerCase()}@shopmebu.local`;
 
   // Validate
-  if (!username || !email || !password) {
+  if (!cleanUsername || !password) {
     req.flash('error', 'Vui lòng điền đầy đủ thông tin!');
     return res.redirect('/dang-ky');
   }
@@ -162,7 +164,7 @@ router.post('/dang-ky', async (req, res) => {
   try {
     // Kiểm tra trùng
     const [[exist]] = await db.query(
-      'SELECT id FROM users WHERE username=? OR email=?', [username, email]
+      'SELECT id FROM users WHERE username=? OR email=?', [cleanUsername, email]
     );
     if (exist) {
       req.flash('error', 'Tên đăng nhập hoặc email đã được sử dụng!');
@@ -172,23 +174,23 @@ router.post('/dang-ky', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username.trim(), email.trim().toLowerCase(), hash]
+      [cleanUsername, email.trim().toLowerCase(), hash]
     );
 
     // Tự đăng nhập luôn
-    req.session.user = { id: result.insertId, username: username.trim(), role: 'customer', balance: 0 };
-    req.flash('success', `Chào mừng ${username}! Tài khoản đã được tạo thành công 🎉`);
+    req.session.user = { id: result.insertId, username: cleanUsername, role: 'customer', balance: 0 };
+    req.flash('success', `Chào mừng ${cleanUsername}! Tài khoản đã được tạo thành công 🎉`);
     res.redirect('/');
   } catch (err) {
     console.error('Lỗi đăng ký:', err);
     try {
-      const { user, exists } = await createLocalUser({ username, email, password });
+      const { user, exists } = await createLocalUser({ username: cleanUsername, email, password });
       if (exists) {
         req.flash('error', 'Tên đăng nhập hoặc email đã được sử dụng!');
         return res.redirect('/dang-ky');
       }
       setSessionFromUser(req, user);
-      req.flash('success', `Chào mừng ${username}! Tài khoản local đã được tạo thành công.`);
+      req.flash('success', `Chào mừng ${cleanUsername}! Tài khoản local đã được tạo thành công.`);
       return res.redirect('/');
     } catch (fallbackErr) {
       console.error('Lỗi đăng ký local:', fallbackErr);
