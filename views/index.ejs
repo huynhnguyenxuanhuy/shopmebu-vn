@@ -116,8 +116,10 @@
               <div class="top5-rank <%= ['r1','r2','r3'][i] || '' %>">
                 <% if (i===0) { %>👑<% } else if(i===1) { %>🥈<% } else if(i===2) { %>🥉<% } else { %>#<%= i+1 %><% } %>
               </div>
-              <div class="top5-name"><%= t.username %></div>
-              <div class="top5-amount"><%= Number(t.total).toLocaleString('vi-VN') %>đ</div>
+              <div class="top5-info">
+                <div class="top5-name"><%= t.username %></div>
+                <div class="top5-amount"><%= Number(t.total).toLocaleString('vi-VN') %>đ</div>
+              </div>
             </li>
             <% }) %>
           </ul>
