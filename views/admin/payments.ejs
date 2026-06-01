@@ -29,10 +29,13 @@
 
       <div class="admin-card" style="margin-bottom:18px;">
         <div class="admin-card-body" style="padding:14px 20px;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <a href="/admin/payments" class="btn <%= !filter?'btn-primary':'btn-outline' %> btn-sm">Tất cả</a>
             <a href="/admin/payments?filter=unprocessed" class="btn <%= filter==='unprocessed'?'btn-primary':'btn-outline' %> btn-sm" style="<%= filter==='unprocessed'?'':'border-color:var(--accent-yellow);color:#856404;' %>">⚠️ Chờ xử lý</a>
             <a href="/admin/payments?filter=processed" class="btn <%= filter==='processed'?'btn-primary':'btn-outline' %> btn-sm">✅ Đã xử lý</a>
+            <form action="/admin/top-depositors/reset" method="POST" onsubmit="return confirm('Reset Top Nạp tháng này về 0?')" style="margin-left:auto;">
+              <button type="submit" class="btn btn-outline btn-sm" style="border-color:var(--primary);color:var(--primary);">↺ Reset Top Nạp</button>
+            </form>
           </div>
         </div>
       </div>
@@ -68,7 +71,7 @@
                     </td>
                     <td style="font-size:11px;font-family:monospace;"><%= log.ref_code || '—' %></td>
                     <td style="font-weight:700;color:var(--primary);">
-                      <%= log.matched_username || (log.matched_user ? '#'+log.matched_user : '❓ Chưa khớp') %>
+                      <%= log.matched_username || ('#'+log.matched_user) %>
                     </td>
                     <td>
                       <% if (log.is_processed) { %>

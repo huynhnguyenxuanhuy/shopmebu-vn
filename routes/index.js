@@ -152,11 +152,18 @@ router.get('/', async (req, res) => {
     });
     const users = await localStore.readUsers();
     const runtime = await localStore.readRuntime();
+    const resetAt = runtime.settings?.top_deposit_reset_at ? new Date(runtime.settings.top_deposit_reset_at) : null;
     const top5 = users
       .map(u => ({
         username: u.username,
         total: runtime.transactions
-          .filter(t => Number(t.user_id) === Number(u.id) && ['deposit', 'admin_adjust'].includes(t.type) && Number(t.amount) > 0)
+          .filter(t => {
+            const createdAt = new Date(t.created_at);
+            return Number(t.user_id) === Number(u.id)
+              && ['deposit', 'admin_adjust'].includes(t.type)
+              && Number(t.amount) > 0
+              && (!resetAt || (createdAt >= resetAt));
+          })
           .reduce((sum, t) => sum + Number(t.amount || 0), 0)
       }))
       .filter(u => u.total > 0)

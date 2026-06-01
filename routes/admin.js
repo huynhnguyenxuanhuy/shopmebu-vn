@@ -435,6 +435,85 @@ router.get('/acc', async (req, res) => {
   }
 });
 
+/* ─── ĐĂNG CODE VIP ─── */
+router.get('/code-vip', async (req, res) => {
+  let codeList = [];
+  try {
+    const [rows] = await db.query(`
+      SELECT a.*, g.name AS game_name
+      FROM accounts a
+      JOIN game_categories g ON g.id=a.category_id
+      LEFT JOIN acc_types at ON at.id=a.acc_type_id
+      WHERE g.slug='vplay-khac' AND (at.slug='vip' OR a.rank='Code VIP' OR a.title LIKE '%Code VIP%')
+      ORDER BY a.id DESC LIMIT 80
+    `);
+    codeList = rows;
+  } catch (_) {
+    const accs = await localStore.listAccounts({ game: 'vplay-khac' });
+    codeList = accs.filter(acc => String(acc.rank || acc.title || '').toLowerCase().includes('code vip'));
+  }
+
+  res.render('admin/code-vip', {
+    layout: false,
+    title: 'Đăng Code VIP',
+    admin: req.session.user,
+    codeList,
+    success_msg: req.flash('success'),
+    error_msg: req.flash('error'),
+    page_name: 'code-vip'
+  });
+});
+
+router.post('/code-vip/them', async (req, res) => {
+  const { code, title, price, acc_info } = req.body;
+  const cleanCode = String(code || '').trim();
+  const cleanPrice = Number(price || 0);
+  if (!cleanCode || cleanPrice <= 0) {
+    req.flash('error', 'Vui lòng nhập code và giá hợp lệ.');
+    return res.redirect('/admin/code-vip');
+  }
+
+  try {
+    const categoryRow = await findCategoryBySlug('vplay-khac');
+    if (!categoryRow) {
+      req.flash('error', 'Chưa có danh mục Game VPlay Khác.');
+      return res.redirect('/admin/code-vip');
+    }
+
+    const accTypeId = await findAccTypeId(categoryRow.id, 'vip');
+    await db.query(`
+      INSERT INTO accounts
+        (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Code VIP', 'Code VIP', NULL, 'available')
+    `, [
+      categoryRow.id,
+      accTypeId,
+      cleanCode,
+      'CODEVIP',
+      acc_info || 'Code VIP - nhận code sau khi mua.',
+      title || `Code VIP ${cleanCode}`,
+      cleanPrice
+    ]);
+    req.flash('success', 'Đã đăng Code VIP.');
+  } catch (err) {
+    console.error(err);
+    await localStore.addAccount({
+      game_slug: 'vplay-khac',
+      acc_type: 'vip',
+      acc_username: cleanCode,
+      acc_password: 'CODEVIP',
+      acc_info: acc_info || 'Code VIP - nhận code sau khi mua.',
+      title: title || `Code VIP ${cleanCode}`,
+      price: cleanPrice,
+      rank_name: 'Code VIP',
+      server: 'Code VIP'
+    });
+    req.flash('success', 'Đã đăng Code VIP vào dữ liệu local.');
+  }
+
+  res.redirect('/admin/code-vip');
+});
+
 /* ─── FORM THÊM ACC ─── */
 router.get('/acc/them', async (req, res) => {
   let games = localStore.categories;
@@ -1046,6 +1125,21 @@ router.get('/orders', async (req, res) => {
   }
 });
 
+router.post('/top-depositors/reset', async (req, res) => {
+  const period = new Date().toISOString().slice(0, 7);
+  try {
+    await db.query('DELETE FROM top_depositors WHERE period=?', [period]);
+    req.flash('success', 'Đã reset Top Nạp tháng này về 0.');
+  } catch (_) {
+    const runtime = await localStore.readRuntime();
+    runtime.settings = runtime.settings || {};
+    runtime.settings.top_deposit_reset_at = new Date().toISOString();
+    await localStore.writeRuntime(runtime);
+    req.flash('success', 'Đã reset Top Nạp local về 0.');
+  }
+  res.redirect('/admin/payments');
+});
+
 /* ─── PAYMENT LOGS ─── */
 router.get('/payments', async (req, res) => {
   const page   = parseInt(req.query.page) || 1;
@@ -1053,7 +1147,7 @@ router.get('/payments', async (req, res) => {
   const offset = (page - 1) * limit;
   const filter = req.query.filter || '';
 
-  let where = 'WHERE 1=1';
+  let where = 'WHERE matched_user IS NOT NULL';
   const params = [];
   if (filter === 'unprocessed') { where += ' AND is_processed=0'; }
   if (filter === 'processed')   { where += ' AND is_processed=1'; }
@@ -1074,7 +1168,8 @@ router.get('/payments', async (req, res) => {
       page_name: 'payments'
     });
   } catch (err) {
-    const logs = await localStore.listPaymentLogs();
+    const logs = (await localStore.listPaymentLogs())
+      .filter(log => log.matched_user || log.matched_username);
     res.render('admin/payments', {
       layout: false, title: 'Payment Logs', admin: req.session.user,
       logs, total:logs.length, page:1, totalPages:1, filter,

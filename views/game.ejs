@@ -347,7 +347,7 @@ function buyAcc(accId) {
               <span class="cred-value">${data.order.acc_password}</span>
               <button onclick="navigator.clipboard.writeText('${data.order.acc_password}').then(()=>alert('Đã sao chép!'))" class="btn-copy"><i class="fas fa-copy"></i></button>
             </div>
-            ${data.order.acc_info ? `<div class="cred-item"><label>Thông tin:</label><span style="color:#ccc;font-size:0.85rem">${data.order.acc_info}</span></div>` : ''}
+            ${data.order.acc_info ? `<div class="cred-item"><label>Lưu ý:</label><span style="color:#ccc;font-size:0.85rem">${data.order.acc_info}</span></div>` : ''}
           </div>
           <p style="color:var(--accent);font-weight:700;margin-top:12px">Số dư còn lại: ${Number(data.new_balance).toLocaleString('vi-VN')}đ</p>
           <p style="color:#aaa;font-size:0.82rem"><i class="fas fa-info-circle"></i> Xem lại tại <a href="/tai-khoan" style="color:var(--primary)">Tài khoản</a></p>

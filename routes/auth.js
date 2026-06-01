@@ -96,6 +96,22 @@ async function ensureCtvSchema() {
   `);
 }
 
+async function findCategoryBySlug(slug) {
+  const [[category]] = await db.query(
+    'SELECT * FROM game_categories WHERE slug=? AND is_active=1',
+    [slug]
+  );
+  return category || null;
+}
+
+async function findAccTypeId(categoryId, slug) {
+  const [[type]] = await db.query(
+    'SELECT id FROM acc_types WHERE category_id=? AND slug=?',
+    [categoryId, slug]
+  );
+  return type?.id || null;
+}
+
 async function findLocalUser(login, password) {
   const key = login.trim().toLowerCase();
   const users = await readLocalUsers();
@@ -283,6 +299,7 @@ router.get('/tai-khoan', async (req, res) => {
 
     let ctvSales = [];
     let ctvWithdrawals = [];
+    let ctvGames = [];
     if (user.role === 'staff') {
       await ensureCtvSchema();
       [ctvSales] = await db.query(`
@@ -298,6 +315,7 @@ router.get('/tai-khoan', async (req, res) => {
         WHERE ctv_id=?
         ORDER BY created_at DESC LIMIT 30
       `, [userId]);
+      [ctvGames] = await db.query('SELECT id, name, slug FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
     }
 
     // Sync session user data after admin changes role/balance.
@@ -310,7 +328,7 @@ router.get('/tai-khoan', async (req, res) => {
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
       page: 'account',
-      user, orders, transactions, ctvSales, ctvWithdrawals,
+      user, orders, transactions, ctvSales, ctvWithdrawals, ctvGames,
       siteUrl: `${req.protocol}://${req.get('host')}`
     });
   } catch (err) {
@@ -321,6 +339,7 @@ router.get('/tai-khoan', async (req, res) => {
     const transactions = await localStore.getUserTransactions(req.session.user.id);
     const ctvSales = localUser.role === 'staff' ? await localStore.getCtvSales(req.session.user.id) : [];
     const ctvWithdrawals = localUser.role === 'staff' ? await localStore.getCtvWithdrawals(req.session.user.id) : [];
+    const ctvGames = localUser.role === 'staff' ? localStore.categories : [];
     req.session.user.balance = Number(localUser.balance || 0);
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
@@ -330,9 +349,81 @@ router.get('/tai-khoan', async (req, res) => {
       transactions,
       ctvSales,
       ctvWithdrawals,
+      ctvGames,
       siteUrl: `${req.protocol}://${req.get('host')}`
     });
   }
+});
+
+router.post('/ctv/dang-acc', async (req, res) => {
+  if (!req.session.user) {
+    req.flash('error', 'Vui lòng đăng nhập!');
+    return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
+  }
+
+  const { game_slug, acc_username, acc_password, acc_info, title, price, rank_name, server, acc_type } = req.body;
+  const cleanPrice = Number(price || 0);
+  if (!game_slug || !acc_username || !acc_password || cleanPrice <= 0) {
+    req.flash('error', 'Vui lòng nhập đầy đủ game, tài khoản, mật khẩu và giá acc.');
+    return res.redirect('/tai-khoan#ctv');
+  }
+
+  try {
+    await ensureCtvSchema();
+    const [[user]] = await db.query('SELECT id, role FROM users WHERE id=?', [req.session.user.id]);
+    if (!user || user.role !== 'staff') {
+      req.flash('error', 'Chỉ tài khoản CTV mới được tự đăng acc.');
+      return res.redirect('/tai-khoan');
+    }
+
+    const categoryRow = await findCategoryBySlug(game_slug);
+    if (!categoryRow) {
+      req.flash('error', 'Game không hợp lệ.');
+      return res.redirect('/tai-khoan#ctv');
+    }
+
+    const accTypeId = await findAccTypeId(categoryRow.id, acc_type || 'tu-chon');
+    await db.query(`
+      INSERT INTO accounts
+        (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status, ctv_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'available', ?)
+    `, [
+      categoryRow.id,
+      accTypeId,
+      String(acc_username).trim(),
+      String(acc_password).trim(),
+      acc_info || null,
+      title || null,
+      cleanPrice,
+      rank_name || null,
+      server || null,
+      req.session.user.id
+    ]);
+    req.flash('success', 'Đã đăng acc CTV, acc đã lên kho bán.');
+  } catch (err) {
+    console.error(err);
+    const users = await localStore.readUsers();
+    const localUser = users.find(u => Number(u.id) === Number(req.session.user.id));
+    if (!localUser || localUser.role !== 'staff') {
+      req.flash('error', 'Chỉ tài khoản CTV mới được tự đăng acc.');
+      return res.redirect('/tai-khoan');
+    }
+    await localStore.addAccount({
+      game_slug,
+      acc_type: acc_type || 'tu-chon',
+      acc_username,
+      acc_password,
+      acc_info,
+      title,
+      price: cleanPrice,
+      rank_name,
+      server,
+      ctv_id: req.session.user.id
+    });
+    req.flash('success', 'Đã đăng acc CTV vào dữ liệu local.');
+  }
+
+  res.redirect('/tai-khoan#ctv');
 });
 
 /* ==================================================

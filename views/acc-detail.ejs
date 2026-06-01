@@ -391,7 +391,7 @@ function buyThisAcc() {
             <span class="cred-value">${data.order.acc_password}</span>
             <button onclick="navigator.clipboard.writeText('${data.order.acc_password}')" class="btn-copy"><i class="fas fa-copy"></i></button>
           </div>
-          ${data.order.acc_info ? `<div class="cred-item"><label>Thông tin:</label><span style="color:#ccc">${data.order.acc_info}</span></div>` : ''}
+          ${data.order.acc_info ? `<div class="cred-item"><label>Lưu ý:</label><span style="color:#ccc">${data.order.acc_info}</span></div>` : ''}
           <p style="color:var(--accent);font-weight:700;margin-top:12px">Số dư còn: ${Number(data.new_balance).toLocaleString('vi-VN')}đ</p>
         `;
         btn.innerHTML = '✅ Đã mua thành công';
