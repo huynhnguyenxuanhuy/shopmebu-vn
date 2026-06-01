@@ -92,7 +92,8 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Ảnh mới (tùy chọn)</label>
-                <input type="file" name="images" accept="image/*" multiple>
+                <input type="file" name="images" id="editImageInput" accept="image/*" multiple>
+                <div id="editImagePreview" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
               </div>
             </div>
 
@@ -115,5 +116,29 @@
     </div>
   </div>
 </div>
+<script>
+const editImageInput = document.getElementById('editImageInput');
+const editImagePreview = document.getElementById('editImagePreview');
+let selectedEditImages = [];
+if (editImageInput && editImagePreview) {
+  editImageInput.addEventListener('change', () => {
+    const incomingFiles = Array.from(editImageInput.files || []);
+    if (!incomingFiles.length) return;
+    selectedEditImages = selectedEditImages.concat(incomingFiles).slice(0, 8);
+    const transfer = new DataTransfer();
+    selectedEditImages.forEach(file => transfer.items.add(file));
+    editImageInput.files = transfer.files;
+    editImagePreview.innerHTML = '';
+    selectedEditImages.forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.alt = file.name || 'Ảnh acc';
+      img.style.cssText = 'width:120px;height:82px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+      editImagePreview.appendChild(img);
+    });
+    editImagePreview.style.display = 'flex';
+  });
+}
+</script>
 </body>
 </html>

@@ -475,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const ctvImageInput = document.getElementById('ctvImageInput');
 const ctvImagePreview = document.getElementById('ctvImagePreview');
 if (ctvImageInput && ctvImagePreview) {
+  let selectedCtvImages = [];
   const renderCtvImages = files => {
     ctvImagePreview.innerHTML = '';
     if (!files.length) {
@@ -492,12 +493,14 @@ if (ctvImageInput && ctvImagePreview) {
   };
   const setCtvFiles = files => {
     const transfer = new DataTransfer();
-    files.slice(0, 8).forEach(file => transfer.items.add(file));
+    selectedCtvImages = files.slice(0, 8);
+    selectedCtvImages.forEach(file => transfer.items.add(file));
     ctvImageInput.files = transfer.files;
-    renderCtvImages(Array.from(ctvImageInput.files));
+    renderCtvImages(selectedCtvImages);
   };
   ctvImageInput.addEventListener('change', () => {
-    renderCtvImages(Array.from(ctvImageInput.files || []));
+    const files = Array.from(ctvImageInput.files || []);
+    if (files.length) setCtvFiles(selectedCtvImages.concat(files));
   });
   document.addEventListener('paste', event => {
     const items = event.clipboardData && event.clipboardData.items;
@@ -507,7 +510,7 @@ if (ctvImageInput && ctvImagePreview) {
     const file = item.getAsFile();
     if (!file) return;
     const namedFile = new File([file], 'ctv-paste-' + Date.now() + '.png', { type: file.type || 'image/png' });
-    setCtvFiles(Array.from(ctvImageInput.files || []).concat(namedFile));
+    setCtvFiles(selectedCtvImages.concat(namedFile));
   });
 }
 function toggleAcc(btn, user, pass, info) {

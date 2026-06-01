@@ -160,9 +160,15 @@
 </div>
 
 <script>
+let selectedAdminImages = [];
 function previewImg(input) {
   const preview = document.getElementById('imgPreview');
-  const files = Array.from(input.files || []);
+  const incomingFiles = Array.from(input.files || []);
+  if (incomingFiles.length) selectedAdminImages = selectedAdminImages.concat(incomingFiles).slice(0, 8);
+  const transfer = new DataTransfer();
+  selectedAdminImages.forEach(file => transfer.items.add(file));
+  input.files = transfer.files;
+  const files = selectedAdminImages;
   preview.innerHTML = '';
   if (files.length) {
     files.slice(0, 8).forEach(file => {
