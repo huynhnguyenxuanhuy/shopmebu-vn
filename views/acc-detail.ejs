@@ -31,9 +31,9 @@
       <div class="detail-gallery">
         <div class="main-img-wrap">
           <% if (images.length > 0) { %>
-            <img src="<%= images[0] %>" alt="Acc #<%= acc.id %>" id="mainImg" class="main-img" onerror="this.src='<%= detailFallbackThumb(acc.id) %>'">
+            <img src="<%= images[0] %>" alt="Acc #<%= acc.id %>" id="mainImg" class="main-img" onclick="openImageModal(this.src)" onerror="this.src='<%= detailFallbackThumb(acc.id) %>'">
           <% } else { %>
-            <img src="<%= detailFallbackThumb(acc.id) %>" alt="Acc #<%= acc.id %>" class="main-img">
+            <img src="<%= detailFallbackThumb(acc.id) %>" alt="Acc #<%= acc.id %>" id="mainImg" class="main-img" onclick="openImageModal(this.src)">
           <% } %>
           <span class="detail-badge"><%= acc.status === 'available' ? '🟢 Còn hàng' : '🔴 Hết hàng' %></span>
         </div>
@@ -41,7 +41,7 @@
         <div class="thumb-list">
           <% images.forEach((img, i) => { %>
           <img src="<%= img %>" alt="Ảnh <%= i+1 %>" class="thumb-item <%= i === 0 ? 'active' : '' %>"
-               onclick="setMain('<%= img %>', this)">
+               onclick="setMain('<%= img %>', this)" ondblclick="openImageModal('<%= img %>')">
           <% }) %>
         </div>
         <% } %>
@@ -184,6 +184,11 @@
   </div>
 </div>
 
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+  <button type="button" class="image-modal-close" aria-label="Đóng ảnh">×</button>
+  <img src="" alt="Ảnh acc full" id="imageModalImg">
+</div>
+
 <%# ── BUY RESULT MODAL ── %>
 <div class="modal-overlay" id="buyModal" style="display:none">
   <div class="modal-box">
@@ -206,7 +211,7 @@
 @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
 
 .main-img-wrap { position: relative; border-radius: 12px; overflow: hidden; }
-.main-img { width: 100%; height: 360px; object-fit: cover; display: block; }
+.main-img { width: 100%; height: 360px; object-fit: cover; display: block; cursor: zoom-in; }
 .detail-badge {
   position: absolute; top: 12px; left: 12px;
   background: rgba(0,0,0,0.7);
@@ -220,13 +225,13 @@
 }
 .thumb-item.active, .thumb-item:hover { border-color: var(--primary); }
 
-.detail-id { color: #555; font-size: 0.8rem; margin-bottom: 6px; }
-.detail-rank { font-size: 1.8rem; color: #fff; margin-bottom: 4px; }
-.detail-title-text { color: #aaa; font-size: 0.9rem; margin-bottom: 16px; }
+.detail-id { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
+.detail-rank { font-size: 1.8rem; color: var(--text); margin-bottom: 4px; }
+.detail-title-text { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
 
 .detail-specs {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: var(--bg2);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 20px;
@@ -234,12 +239,12 @@
 }
 .spec-item { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
 .spec-item i { color: var(--primary); width: 16px; }
-.spec-key { color: #888; }
-.spec-val { color: #fff; font-weight: 600; }
+.spec-key { color: var(--text-muted); }
+.spec-val { color: var(--text); font-weight: 700; }
 
 .detail-price-box {
   background: var(--card-bg);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -247,8 +252,8 @@
 .detail-price { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .price-label { color: #888; font-size: 0.9rem; }
 .price-value { font-size: 2rem; font-weight: 900; color: var(--accent); }
-.balance-info { color: #aaa; font-size: 0.85rem; margin-bottom: 12px; }
-.balance-info strong { color: #fff; }
+.balance-info { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px; }
+.balance-info strong { color: var(--text); }
 .btn-napngay {
   display: inline-block;
   background: var(--accent); color: #000;
@@ -274,7 +279,7 @@
 }
 .auto-note i { color: #2ecc71; font-size: 1.4rem; }
 .auto-note strong { display: block; color: #2ecc71; margin-bottom: 2px; }
-.auto-note span { color: #aaa; font-size: 0.82rem; }
+.auto-note span { color: var(--text-muted); font-size: 0.82rem; }
 
 .support-links { display: flex; gap: 10px; }
 .supp-btn {
@@ -348,6 +353,23 @@
 }
 .cred-label { color: #aaa; font-size: 0.8rem; width: 90px; flex-shrink: 0; }
 .bought-date { color: #888; font-size: 0.78rem; margin-top: 8px; text-align: right; }
+.image-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.9);
+  display: none; align-items: center; justify-content: center;
+  z-index: 10050; padding: 18px;
+}
+.image-modal.active { display: flex; }
+.image-modal img { max-width: 96vw; max-height: 92vh; object-fit: contain; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.45); }
+.image-modal-close {
+  position: fixed; top: 16px; right: 18px; width: 40px; height: 40px;
+  border-radius: 50%; border: 0; background: #fff; color: #111;
+  font-size: 28px; line-height: 1; cursor: pointer; font-weight: 700;
+}
+@media (max-width: 600px) {
+  .main-img { height: 260px; }
+  .detail-specs { grid-template-columns: 1fr; }
+  .price-value { font-size: 1.55rem; }
+}
 </style>
 
 <script>
@@ -355,6 +377,20 @@ function setMain(src, el) {
   document.getElementById('mainImg').src = src;
   document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+}
+
+function openImageModal(src) {
+  const modal = document.getElementById('imageModal');
+  document.getElementById('imageModalImg').src = src;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  const modal = document.getElementById('imageModal');
+  modal.classList.remove('active');
+  document.getElementById('imageModalImg').src = '';
+  document.body.style.overflow = '';
 }
 
 function buyThisAcc() {

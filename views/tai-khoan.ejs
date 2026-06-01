@@ -228,7 +228,9 @@ async function copyCtvLink() {
               </div>
               <div class="form-group">
                 <label>Ảnh acc</label>
-                <input type="file" name="image" accept="image/*">
+                <input type="file" name="image" id="ctvImageInput" accept="image/*">
+                <div id="ctvPasteHint" style="font-size:12px;color:var(--text-muted);margin-top:6px;">Có thể copy ảnh rồi bấm Ctrl+V vào trang này.</div>
+                <img id="ctvImagePreview" alt="Ảnh acc đã chọn" style="display:none;margin-top:10px;width:120px;height:82px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
               </div>
               <div class="form-group">
                 <label>Lưu ý sau khi mua</label>
@@ -470,6 +472,30 @@ function showTab(name, btn) {
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.hash === '#ctv') showTab('ctv');
 });
+const ctvImageInput = document.getElementById('ctvImageInput');
+const ctvImagePreview = document.getElementById('ctvImagePreview');
+if (ctvImageInput && ctvImagePreview) {
+  ctvImageInput.addEventListener('change', () => {
+    const file = ctvImageInput.files && ctvImageInput.files[0];
+    if (!file) return;
+    ctvImagePreview.src = URL.createObjectURL(file);
+    ctvImagePreview.style.display = 'block';
+  });
+  document.addEventListener('paste', event => {
+    const items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    const item = Array.from(items).find(i => i.type && i.type.startsWith('image/'));
+    if (!item) return;
+    const file = item.getAsFile();
+    if (!file) return;
+    const namedFile = new File([file], 'ctv-paste-' + Date.now() + '.png', { type: file.type || 'image/png' });
+    const transfer = new DataTransfer();
+    transfer.items.add(namedFile);
+    ctvImageInput.files = transfer.files;
+    ctvImagePreview.src = URL.createObjectURL(namedFile);
+    ctvImagePreview.style.display = 'block';
+  });
+}
 function toggleAcc(btn, user, pass, info) {
   document.getElementById('accModal').style.display = 'flex';
   document.getElementById('accModalBody').innerHTML = `
