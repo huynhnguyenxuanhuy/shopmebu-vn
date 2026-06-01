@@ -79,7 +79,7 @@
                     <td style="font-size:11px;color:var(--text-muted);"><%= new Date(log.created_at).toLocaleString('vi-VN') %></td>
                     <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                       <% if (!log.is_processed) { %>
-                      <button class="btn btn-success btn-sm" onclick="openManual(<%= log.id %>, <%= log.amount %>, '<%= (log.content||'').replace(/'/g,'') %>', '<%= log.matched_user || '' %>')">⚡ Xử Lý</button>
+                      <button class="btn btn-success btn-sm" onclick="openManual(<%= log.id %>, <%= log.amount %>, '<%= (log.content||'').replace(/'/g,'') %>', '<%= log.matched_user || '' %>', '<%= (log.matched_username || '').replace(/'/g,'') %>')">⚡ Xử Lý</button>
                       <% } else { %>
                       <span style="font-size:11px;color:var(--text-muted);">Done</span>
                       <% } %>
@@ -122,6 +122,8 @@
       <div style="font-weight:700;font-size:13px;" id="manContent">---</div>
       <div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">Số tiền nhận:</div>
       <div style="font-weight:900;font-size:18px;color:var(--primary);" id="manAmount">---</div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">User hệ thống đã khớp:</div>
+      <div style="font-weight:900;font-size:14px;color:#00a651;" id="manMatchedUser">---</div>
     </div>
     <div class="admin-form">
       <input type="hidden" id="manLogId">
@@ -140,12 +142,15 @@
 </div>
 
 <script>
-function openManual(logId, amount, content, userId) {
+function openManual(logId, amount, content, userId, username) {
   document.getElementById('manLogId').value = logId;
   document.getElementById('manAmt').value   = amount;
   document.getElementById('manUserId').value = userId || '';
   document.getElementById('manAmount').textContent = Number(amount).toLocaleString('vi-VN') + 'đ';
   document.getElementById('manContent').textContent = content || '(không có nội dung)';
+  document.getElementById('manMatchedUser').textContent = userId
+    ? ((username || 'User') + ' (#' + userId + ')')
+    : 'Chưa khớp user - kiểm tra nội dung CK trước khi cộng';
   document.getElementById('manMsg').style.display = 'none';
   document.getElementById('manualModal').classList.add('active');
 }
@@ -160,9 +165,12 @@ async function submitManual() {
     msg.style.display='block'; msg.style.color='var(--primary)'; msg.textContent='⚠️ Điền đầy đủ!'; return;
   }
 
-  const fd = new FormData();
-  fd.append('log_id', log_id); fd.append('user_id', user_id); fd.append('amount', amount);
-  const r = await fetch('/admin/payments/xu-ly', { method:'POST', body:fd });
+  const body = new URLSearchParams({ log_id, user_id, amount });
+  const r = await fetch('/admin/payments/xu-ly', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+    body
+  });
   const d = await r.json();
   msg.style.display='block';
   msg.style.color = d.success ? '#00c853' : 'var(--primary)';
