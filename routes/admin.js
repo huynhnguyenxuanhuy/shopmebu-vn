@@ -1135,7 +1135,7 @@ router.get('/orders', async (req, res) => {
   }
 });
 
-router.post('/top-depositors/reset', async (req, res) => {
+async function resetTopDepositors(req, res) {
   const period = new Date().toISOString().slice(0, 7);
   try {
     await db.query('DELETE FROM top_depositors WHERE period=?', [period]);
@@ -1148,7 +1148,10 @@ router.post('/top-depositors/reset', async (req, res) => {
     req.flash('success', 'Đã reset Top Nạp local về 0.');
   }
   res.redirect('/admin/payments');
-});
+}
+
+router.get('/top-depositors/reset', resetTopDepositors);
+router.post('/top-depositors/reset', resetTopDepositors);
 
 /* ─── PAYMENT LOGS ─── */
 router.get('/payments', async (req, res) => {
