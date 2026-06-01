@@ -1244,6 +1244,17 @@ router.post('/payments/xu-ly', async (req, res) => {
       INSERT INTO transactions (user_id, type, amount, balance_before, balance_after, payment_method, transfer_ref, transfer_content, status)
       VALUES (?, 'deposit', ?, ?, ?, 'manual', ?, ?, 'success')
     `, [user_id, total, before, after, 'manual', log.ref_code || '', log.content || '']);
+    const period = new Date().toISOString().slice(0, 7);
+    await conn.query(`
+      INSERT INTO top_depositors (user_id, period, total, count)
+      VALUES (?, ?, ?, 1)
+      ON DUPLICATE KEY UPDATE total=total+?, count=count+1
+    `, [user_id, period, total, total]);
+    await conn.query('SET @rank = 0');
+    await conn.query(
+      'UPDATE top_depositors SET rank = (@rank := @rank + 1) WHERE period=? ORDER BY total DESC',
+      [period]
+    );
     await conn.query('UPDATE payment_logs SET is_processed=1, matched_user=? WHERE id=?', [user_id, log_id]);
 
     await conn.commit();
