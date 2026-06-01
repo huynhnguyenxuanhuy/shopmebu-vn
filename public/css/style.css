@@ -787,8 +787,8 @@ img { max-width: 100%; }
 .top5-body { padding:18px; }
 .top5-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
 .top5-item {
-  display:grid; grid-template-columns:38px minmax(0,1fr); align-items:center; gap:4px 12px;
-  min-height:58px; padding:11px 14px; border-radius:12px;
+  display:grid; grid-template-columns:36px minmax(0,1fr); align-items:center; gap:3px 10px;
+  min-height:58px; padding:10px 12px; border-radius:12px;
   background:var(--bg); border:1px solid var(--border);
   transition:all .2s;
 }
@@ -801,10 +801,11 @@ img { max-width: 100%; }
 .top5-rank.r1 { background:linear-gradient(135deg,#111,var(--primary)); color:#fff; box-shadow:0 3px 10px rgba(17,17,17,.3); }
 .top5-rank.r2 { background:linear-gradient(135deg,#4b4b4b,#111); color:#fff; }
 .top5-rank.r3 { background:linear-gradient(135deg,#b4b4b4,#4a4a4a); color:#fff; }
-.top5-name { min-width:0; font-size:14px; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.top5-name { grid-column:2; min-width:0; font-size:13px; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .top5-amount {
-  grid-column:2; font-size:14px; font-weight:900; max-width:100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;
+  grid-column:2; min-width:0; width:100%; display:block;
+  font-size:13px; line-height:1.15; font-weight:900; font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere; word-break:break-word; white-space:normal; text-align:left;
   background:linear-gradient(135deg, #111, var(--primary));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
