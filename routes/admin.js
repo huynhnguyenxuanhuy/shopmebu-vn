@@ -65,6 +65,16 @@ async function findAccTypeId(categoryId, slug) {
   return type?.id || null;
 }
 
+async function ensureAccTypeId(categoryId, slug, name) {
+  const existingId = await findAccTypeId(categoryId, slug);
+  if (existingId) return existingId;
+  const [result] = await db.query(
+    'INSERT INTO acc_types (category_id, name, slug) VALUES (?, ?, ?)',
+    [categoryId, name, slug]
+  );
+  return result.insertId;
+}
+
 const contentDefaults = {
   hero_badge: '⚡ Tự Động 24/7 • Giao Ngay Sau Khi Mua',
   hero_title: 'Mua Bán Acc VPlay',
@@ -480,7 +490,7 @@ router.post('/code-vip/them', async (req, res) => {
       return res.redirect('/admin/code-vip');
     }
 
-    const accTypeId = await findAccTypeId(categoryRow.id, 'vip');
+    const accTypeId = await ensureAccTypeId(categoryRow.id, 'vip', 'Code VIP');
     await db.query(`
       INSERT INTO accounts
         (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status)
@@ -511,7 +521,7 @@ router.post('/code-vip/them', async (req, res) => {
     req.flash('success', 'Đã đăng Code VIP vào dữ liệu local.');
   }
 
-  res.redirect('/admin/code-vip');
+  res.redirect('/game/vplay-khac/vip');
 });
 
 /* ─── FORM THÊM ACC ─── */

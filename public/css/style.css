@@ -787,7 +787,7 @@ img { max-width: 100%; }
 .top5-body { padding:18px; }
 .top5-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
 .top5-item {
-  display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:12px;
+  display:grid; grid-template-columns:38px minmax(0,1fr); align-items:center; gap:4px 12px;
   min-height:58px; padding:11px 14px; border-radius:12px;
   background:var(--bg); border:1px solid var(--border);
   transition:all .2s;
@@ -803,7 +803,8 @@ img { max-width: 100%; }
 .top5-rank.r3 { background:linear-gradient(135deg,#b4b4b4,#4a4a4a); color:#fff; }
 .top5-name { min-width:0; font-size:14px; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .top5-amount {
-  font-size:15px; font-weight:900; white-space:nowrap; text-align:right;
+  grid-column:2; font-size:14px; font-weight:900; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;
   background:linear-gradient(135deg, #111, var(--primary));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
