@@ -36,7 +36,8 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, 'acc_' + Date.now() + path.extname(file.originalname));
+    const unique = Date.now() + '_' + Math.round(Math.random() * 1e9);
+    cb(null, 'acc_' + unique + path.extname(file.originalname));
   }
 });
 const upload = multer({
@@ -566,7 +567,10 @@ router.get('/acc/them', async (req, res) => {
 });
 
 /* ─── LƯU ACC MỚI ─── */
-router.post('/acc/them', upload.single('image'), async (req, res) => {
+router.post('/acc/them', upload.fields([
+  { name: 'images', maxCount: 8 },
+  { name: 'image', maxCount: 8 }
+]), async (req, res) => {
   const {
     game_slug, acc_username, acc_password, acc_info,
     title, price, rank_name, server, acc_type, category, ctv_id
@@ -577,7 +581,11 @@ router.post('/acc/them', upload.single('image'), async (req, res) => {
     return res.redirect('/admin/acc/them');
   }
 
-  const image_url = req.file ? '/uploads/acc/' + req.file.filename : null;
+  const uploadedFiles = [
+    ...((req.files && req.files.images) || []),
+    ...((req.files && req.files.image) || [])
+  ];
+  const image_url = uploadedFiles.map(file => '/uploads/acc/' + file.filename).join(',') || null;
   const ctvId = ctv_id ? parseInt(ctv_id) : null;
 
   try {
@@ -719,7 +727,10 @@ router.get('/acc/sua/:id', async (req, res) => {
 });
 
 /* ─── LƯU SỬA ACC ─── */
-router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
+router.post('/acc/sua/:id', upload.fields([
+  { name: 'images', maxCount: 8 },
+  { name: 'image', maxCount: 8 }
+]), async (req, res) => {
   const id = parseInt(req.params.id);
   const {
     game_slug, acc_username, acc_password, acc_info,
@@ -746,7 +757,12 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
     }
 
     const accTypeId = await findAccTypeId(categoryRow.id, acc_type);
-    const imageUrl = req.file ? '/uploads/acc/' + req.file.filename : oldAcc.images;
+    const uploadedFiles = [
+      ...((req.files && req.files.images) || []),
+      ...((req.files && req.files.image) || [])
+    ];
+    const newImages = uploadedFiles.map(file => '/uploads/acc/' + file.filename).join(',');
+    const imageUrl = newImages || oldAcc.images;
     const ctvId = ctv_id ? parseInt(ctv_id) : null;
 
     await db.query(`
@@ -772,7 +788,14 @@ router.post('/acc/sua/:id', upload.single('image'), async (req, res) => {
     req.flash('success', `✅ Đã cập nhật acc #${id}`);
     res.redirect('/admin/acc');
   } catch (err) {
-    await localStore.updateAccount(id, { ...req.body, image_url: req.file ? '/uploads/acc/' + req.file.filename : null });
+    const uploadedFiles = [
+      ...((req.files && req.files.images) || []),
+      ...((req.files && req.files.image) || [])
+    ];
+    await localStore.updateAccount(id, {
+      ...req.body,
+      image_url: uploadedFiles.map(file => '/uploads/acc/' + file.filename).join(',') || null
+    });
     req.flash('success', `✅ Đã cập nhật acc #${id} trong dữ liệu local`);
     res.redirect('/admin/acc');
   }

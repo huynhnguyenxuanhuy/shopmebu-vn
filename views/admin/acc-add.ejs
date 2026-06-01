@@ -114,8 +114,8 @@
 
               <div class="form-group">
                 <label>Ảnh Acc (tùy chọn)</label>
-                <input type="file" name="image" accept="image/*" onchange="previewImg(this)">
-                <img id="imgPreview" style="max-width:200px;border-radius:10px;margin-top:10px;display:none;">
+                <input type="file" name="images" accept="image/*" multiple onchange="previewImg(this)">
+                <div id="imgPreview" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
               </div>
 
               <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;font-size:15px;">
@@ -162,10 +162,19 @@
 <script>
 function previewImg(input) {
   const preview = document.getElementById('imgPreview');
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
-    reader.readAsDataURL(input.files[0]);
+  const files = Array.from(input.files || []);
+  preview.innerHTML = '';
+  if (files.length) {
+    files.slice(0, 8).forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.alt = file.name || 'Ảnh acc';
+      img.style.cssText = 'width:120px;height:82px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+      preview.appendChild(img);
+    });
+    preview.style.display = 'flex';
+  } else {
+    preview.style.display = 'none';
   }
 }
 
