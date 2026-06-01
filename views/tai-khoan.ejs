@@ -192,7 +192,7 @@ async function copyCtvLink() {
       <div class="admin-card" style="margin-bottom:18px;">
         <div class="admin-card-header"><h3>Đăng acc CTV</h3></div>
         <div class="admin-card-body">
-          <form action="/ctv/dang-acc" method="POST" class="admin-form">
+          <form action="/ctv/dang-acc" method="POST" enctype="multipart/form-data" class="admin-form">
             <div class="form-grid">
               <div class="form-group">
                 <label>Game</label>
@@ -225,6 +225,10 @@ async function copyCtvLink() {
               <div class="form-group">
                 <label>Server</label>
                 <input type="text" name="server" placeholder="Server">
+              </div>
+              <div class="form-group">
+                <label>Ảnh acc</label>
+                <input type="file" name="image" accept="image/*">
               </div>
               <div class="form-group">
                 <label>Lưu ý sau khi mua</label>

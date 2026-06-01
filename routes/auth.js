@@ -5,12 +5,31 @@ const express   = require('express');
 const router    = express.Router();
 const bcrypt    = require('bcryptjs');
 const fs        = require('fs/promises');
+const fsSync    = require('fs');
 const path      = require('path');
+const multer    = require('multer');
 const db        = require('../config/db');
 const passport  = require('../config/passport');
 const localStore = require('../utils/localStore');
 
 const localUsersFile = path.join(__dirname, '../data/local-users.json');
+const ctvUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(__dirname, '../public/uploads/acc');
+      fsSync.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, 'ctv_' + Date.now() + path.extname(file.originalname));
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Chỉ nhận file ảnh!'));
+    cb(null, true);
+  }
+});
 
 /* ---- Helper: đặt session sau OAuth ---- */
 function setSessionFromUser(req, user) {
@@ -357,7 +376,7 @@ router.get('/tai-khoan', async (req, res) => {
   }
 });
 
-router.post('/ctv/dang-acc', async (req, res) => {
+router.post('/ctv/dang-acc', ctvUpload.single('image'), async (req, res) => {
   if (!req.session.user) {
     req.flash('error', 'Vui lòng đăng nhập!');
     return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
@@ -365,6 +384,7 @@ router.post('/ctv/dang-acc', async (req, res) => {
 
   const { game_slug, acc_username, acc_password, acc_info, title, price, rank_name, server, acc_type } = req.body;
   const cleanPrice = Number(price || 0);
+  const imageUrl = req.file ? '/uploads/acc/' + req.file.filename : null;
   if (!game_slug || !acc_username || !acc_password || cleanPrice <= 0) {
     req.flash('error', 'Vui lòng nhập đầy đủ game, tài khoản, mật khẩu và giá acc.');
     return res.redirect('/tai-khoan#ctv');
@@ -388,7 +408,7 @@ router.post('/ctv/dang-acc', async (req, res) => {
     await db.query(`
       INSERT INTO accounts
         (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status, ctv_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'available', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', ?)
     `, [
       categoryRow.id,
       accTypeId,
@@ -399,6 +419,7 @@ router.post('/ctv/dang-acc', async (req, res) => {
       cleanPrice,
       rank_name || null,
       server || null,
+      imageUrl,
       req.session.user.id
     ]);
     req.flash('success', 'Đã đăng acc CTV, acc đã lên kho bán.');
@@ -420,6 +441,7 @@ router.post('/ctv/dang-acc', async (req, res) => {
       price: cleanPrice,
       rank_name,
       server,
+      image_url: imageUrl,
       ctv_id: req.session.user.id
     });
     req.flash('success', 'Đã đăng acc CTV vào dữ liệu local.');
