@@ -294,6 +294,30 @@ router.get('/logout', (req, res) => {
 // Áp adminAuth cho tất cả route
 router.use(adminAuth);
 
+router.get('/alerts/status', async (req, res) => {
+  try {
+    await ensureCtvSchema();
+    const [[{ pendingPayments }]] = await db.query('SELECT COUNT(*) AS pendingPayments FROM payment_logs WHERE is_processed=0');
+    const [[{ pendingWithdrawals }]] = await db.query('SELECT COUNT(*) AS pendingWithdrawals FROM ctv_withdrawals WHERE status="pending"');
+    return res.json({
+      success: true,
+      pendingPayments: Number(pendingPayments || 0),
+      pendingWithdrawals: Number(pendingWithdrawals || 0),
+      total: Number(pendingPayments || 0) + Number(pendingWithdrawals || 0)
+    });
+  } catch (_) {
+    const runtime = await localStore.readRuntime();
+    const pendingPayments = (runtime.payment_logs || []).filter(log => !log.is_processed).length;
+    const pendingWithdrawals = (runtime.ctv_withdrawals || []).filter(w => w.status === 'pending').length;
+    return res.json({
+      success: true,
+      pendingPayments,
+      pendingWithdrawals,
+      total: pendingPayments + pendingWithdrawals
+    });
+  }
+});
+
 /* ─── DASHBOARD ─── */
 router.get('/', async (req, res) => {
   const selectedYear = Number(req.query.year) || new Date().getFullYear();

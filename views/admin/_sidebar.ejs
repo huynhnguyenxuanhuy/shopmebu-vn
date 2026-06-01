@@ -12,6 +12,90 @@ function toggleAdminSidebar() {
   overlay.classList.toggle('open', !isOpen);
   document.body.style.overflow = isOpen ? '' : 'hidden';
 }
+
+(function initAdminAlerts() {
+  if (window.__shopmebuAdminAlerts) return;
+  window.__shopmebuAdminAlerts = true;
+
+  let lastState = null;
+  let firstLoad = true;
+
+  function ensureToastRoot() {
+    let root = document.getElementById('adminAlertToasts');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'adminAlertToasts';
+      root.style.cssText = 'position:fixed;right:18px;top:18px;z-index:99999;display:flex;flex-direction:column;gap:10px;max-width:360px;';
+      document.body.appendChild(root);
+    }
+    return root;
+  }
+
+  function showAdminToast(title, message, href) {
+    const root = ensureToastRoot();
+    const toast = document.createElement('a');
+    toast.href = href || '/admin';
+    toast.style.cssText = [
+      'display:block;text-decoration:none;color:#fff;border-radius:16px;padding:14px 16px',
+      'background:linear-gradient(135deg,#111,#7b0008 52%,#e60012)',
+      'box-shadow:0 16px 36px rgba(230,0,18,.35);border:1px solid rgba(255,255,255,.18)',
+      'font-family:Be Vietnam Pro,Arial,sans-serif;transform:translateX(110%);opacity:0;transition:all .28s ease'
+    ].join(';');
+    toast.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;font-weight:900;font-size:14px;">
+        <span style="width:30px;height:30px;border-radius:50%;background:#fff;color:#e60012;display:inline-flex;align-items:center;justify-content:center;">🔔</span>
+        <span>${title}</span>
+      </div>
+      <div style="font-size:12.5px;line-height:1.5;margin-top:8px;color:rgba(255,255,255,.88);">${message}</div>
+      <div style="font-size:11px;font-weight:900;margin-top:10px;color:#ffd7d7;">Bấm để xem ngay →</div>
+    `;
+    root.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateX(0)';
+      toast.style.opacity = '1';
+    });
+    setTimeout(() => {
+      toast.style.transform = 'translateX(110%)';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 320);
+    }, 7000);
+  }
+
+  async function checkAdminAlerts() {
+    try {
+      const res = await fetch('/admin/alerts/status', { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+
+      if (firstLoad) {
+        if (data.pendingPayments > 0) {
+          showAdminToast('Có payment chờ xử lý', `${data.pendingPayments} giao dịch đang chờ admin duyệt.`, '/admin/payments?filter=unprocessed');
+        }
+        if (data.pendingWithdrawals > 0) {
+          showAdminToast('Có yêu cầu rút tiền CTV', `${data.pendingWithdrawals} yêu cầu rút tiền đang chờ duyệt.`, '/admin/ctv');
+        }
+        firstLoad = false;
+      } else if (lastState) {
+        if (data.pendingPayments > lastState.pendingPayments) {
+          showAdminToast('Payment mới cần xử lý', `Có ${data.pendingPayments - lastState.pendingPayments} giao dịch mới chờ duyệt.`, '/admin/payments?filter=unprocessed');
+        }
+        if (data.pendingWithdrawals > lastState.pendingWithdrawals) {
+          showAdminToast('CTV vừa gửi yêu cầu rút', `Có ${data.pendingWithdrawals - lastState.pendingWithdrawals} yêu cầu rút tiền mới.`, '/admin/ctv');
+        }
+      }
+
+      lastState = data;
+    } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAdminAlerts);
+  } else {
+    checkAdminAlerts();
+  }
+  setInterval(checkAdminAlerts, 10000);
+})();
 </script>
 
 <div class="admin-sidebar" id="adminSidebar">
