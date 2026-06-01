@@ -79,7 +79,7 @@
                     <td style="font-size:11px;color:var(--text-muted);"><%= new Date(log.created_at).toLocaleString('vi-VN') %></td>
                     <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                       <% if (!log.is_processed) { %>
-                      <button class="btn btn-success btn-sm" onclick="openManual(<%= log.id %>, <%= log.amount %>, '<%= (log.content||'').replace(/'/g,'') %>')">⚡ Xử Lý</button>
+                      <button class="btn btn-success btn-sm" onclick="openManual(<%= log.id %>, <%= log.amount %>, '<%= (log.content||'').replace(/'/g,'') %>', '<%= log.matched_user || '' %>')">⚡ Xử Lý</button>
                       <% } else { %>
                       <span style="font-size:11px;color:var(--text-muted);">Done</span>
                       <% } %>
@@ -140,9 +140,10 @@
 </div>
 
 <script>
-function openManual(logId, amount, content) {
+function openManual(logId, amount, content, userId) {
   document.getElementById('manLogId').value = logId;
   document.getElementById('manAmt').value   = amount;
+  document.getElementById('manUserId').value = userId || '';
   document.getElementById('manAmount').textContent = Number(amount).toLocaleString('vi-VN') + 'đ';
   document.getElementById('manContent').textContent = content || '(không có nội dung)';
   document.getElementById('manMsg').style.display = 'none';

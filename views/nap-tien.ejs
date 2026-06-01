@@ -197,6 +197,12 @@
             <span class="bank-val"><%= napCode %></span>
             <button onclick="copyText('<%= napCode %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
           </div>
+          <form action="/nap-tien/momo-bao-da-chuyen" method="POST" class="momo-report-form" onsubmit="return confirm('Gửi yêu cầu nạp MoMo cho admin duyệt?')">
+            <input type="hidden" name="amount" id="momoReportAmount" value="100000">
+            <button type="submit" class="btn-momo-report">
+              <i class="fas fa-paper-plane"></i> Tôi đã chuyển MoMo
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -702,6 +708,13 @@
   align-items: start;
 }
 .momo-qr-wrap { text-align: center; }
+.momo-report-form { margin-top: 14px; }
+.btn-momo-report {
+  width: 100%; border: 0; border-radius: 12px; padding: 12px 16px; cursor: pointer;
+  background: linear-gradient(135deg, #ae2070, #d91b82); color: #fff; font-weight: 900;
+  box-shadow: 0 8px 22px rgba(174,32,112,.22);
+}
+.btn-momo-report:hover { opacity: .9; }
 @media (max-width: 600px) {
   .momo-manual-body { grid-template-columns: 1fr; }
   .momo-manual-header { flex-wrap: wrap; }
@@ -846,6 +859,8 @@ function updateQrAmount() {
   if (bonusEl) bonusEl.textContent = formatMoney(bonusAmount);
   if (receiveEl) receiveEl.textContent = formatMoney(receive);
   if (qrAmountEl) qrAmountEl.textContent = formatMoney(amount);
+  const momoReportAmount = document.getElementById('momoReportAmount');
+  if (momoReportAmount) momoReportAmount.value = amount >= 10000 ? amount : 10000;
 
   document.querySelectorAll('.amount-choice').forEach(btn => {
     btn.classList.toggle('active', Number(btn.dataset.amount) === amount);
