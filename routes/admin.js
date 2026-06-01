@@ -76,6 +76,17 @@ async function ensureAccTypeId(categoryId, slug, name) {
   return result.insertId;
 }
 
+function accTypeName(slug) {
+  const names = {
+    'tu-chon': 'Tự Chọn',
+    random: 'Túi Mù Random',
+    vip: 'VIP Cao Cấp',
+    reg: 'Acc REG',
+    reroll: 'Acc Reroll'
+  };
+  return names[slug] || 'Tự Chọn';
+}
+
 const contentDefaults = {
   hero_badge: '⚡ Tự Động 24/7 • Giao Ngay Sau Khi Mua',
   hero_title: 'Mua Bán Acc VPlay',
@@ -526,7 +537,7 @@ router.post('/code-vip/them', async (req, res) => {
       cleanCode,
       'CODEVIP',
       acc_info || 'Code VIP - nhận code sau khi mua.',
-      title || `Code VIP ${cleanCode}`,
+      title || 'Code VIP',
       cleanPrice
     ]);
     req.flash('success', 'Đã đăng Code VIP.');
@@ -538,7 +549,7 @@ router.post('/code-vip/them', async (req, res) => {
       acc_username: cleanCode,
       acc_password: 'CODEVIP',
       acc_info: acc_info || 'Code VIP - nhận code sau khi mua.',
-      title: title || `Code VIP ${cleanCode}`,
+      title: title || 'Code VIP',
       price: cleanPrice,
       rank_name: 'Code VIP',
       server: 'Code VIP'
@@ -596,7 +607,7 @@ router.post('/acc/them', upload.fields([
       return res.redirect('/admin/acc/them');
     }
 
-    const accTypeId = await findAccTypeId(categoryRow.id, acc_type);
+    const accTypeId = await ensureAccTypeId(categoryRow.id, acc_type || 'tu-chon', accTypeName(acc_type || 'tu-chon'));
     await db.query(`
       INSERT INTO accounts
         (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status, ctv_id)
@@ -641,7 +652,7 @@ router.post('/acc/bulk', async (req, res) => {
     const categoryRow = await findCategoryBySlug(game_slug);
     if (!categoryRow) return res.json({ success: false, message: 'Game không hợp lệ!' });
 
-    const accTypeId = await findAccTypeId(categoryRow.id, acc_type || 'tu-chon');
+    const accTypeId = await ensureAccTypeId(categoryRow.id, acc_type || 'tu-chon', accTypeName(acc_type || 'tu-chon'));
     const rows = lines.map(line => {
       const parts = line.split('|');
       return [
@@ -756,7 +767,7 @@ router.post('/acc/sua/:id', upload.fields([
       return res.redirect('/admin/acc');
     }
 
-    const accTypeId = await findAccTypeId(categoryRow.id, acc_type);
+    const accTypeId = await ensureAccTypeId(categoryRow.id, acc_type || 'tu-chon', accTypeName(acc_type || 'tu-chon'));
     const uploadedFiles = [
       ...((req.files && req.files.images) || []),
       ...((req.files && req.files.image) || [])
@@ -838,6 +849,7 @@ router.get('/users', async (req, res) => {
     const [users] = await db.query(`
       SELECT u.*,
         (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) as order_count,
+        (SELECT COUNT(*) FROM accounts a WHERE a.ctv_id=u.id AND a.status='available') as selling_count,
         (SELECT COALESCE(SUM(amount),0) FROM transactions t WHERE t.user_id=u.id AND t.type='deposit' AND t.status='success') as total_deposit
       FROM users u ${where}
       ORDER BY u.id DESC LIMIT ? OFFSET ?
@@ -899,6 +911,17 @@ router.get('/ctv', async (req, res) => {
       LEFT JOIN accounts a ON a.id=cs.account_id
       ORDER BY cs.created_at DESC LIMIT 50
     `);
+    const [ctvSellingAccounts] = await db.query(`
+      SELECT a.id, a.ctv_id, a.title, a.price, a.created_at,
+             u.username, g.name AS game_name, at.name AS type_name
+      FROM accounts a
+      JOIN users u ON u.id=a.ctv_id
+      JOIN game_categories g ON g.id=a.category_id
+      LEFT JOIN acc_types at ON at.id=a.acc_type_id
+      WHERE a.status='available'
+      ORDER BY a.ctv_id ASC, a.id DESC
+      LIMIT 200
+    `);
     const [assignableUsers] = await db.query(`
       SELECT id, username, email
       FROM users
@@ -909,7 +932,7 @@ router.get('/ctv', async (req, res) => {
 
     res.render('admin/ctv', {
       layout: false, title: 'Quản Lý CTV',
-      admin: req.session.user, ctvList, withdrawals, ctvSales, assignableUsers, commissionGames, total, page,
+      admin: req.session.user, ctvList, withdrawals, ctvSales, ctvSellingAccounts, assignableUsers, commissionGames, total, page,
       totalPages: Math.ceil(total/limit), search,
       resetUrl: '/admin/ctv', ctvSearchMode: Boolean(search),
       success_msg: req.flash('success'), error_msg: req.flash('error'),
@@ -930,6 +953,13 @@ router.get('/ctv', async (req, res) => {
     }
     const withdrawals = await localStore.getCtvWithdrawals();
     const ctvSales = await localStore.getCtvSales();
+    const ctvSellingAccounts = (await localStore.listAccounts({ status: 'available' }))
+      .filter(acc => Number(acc.ctv_id || 0) > 0)
+      .slice(0, 200);
+    ctvList = ctvList.map(ctv => ({
+      ...ctv,
+      selling_count: ctvSellingAccounts.filter(acc => Number(acc.ctv_id) === Number(ctv.id)).length
+    }));
     const assignableUsers = (await localStore.readUsers()).filter(u => u.role !== 'staff' && u.role !== 'superadmin');
     const runtime = await localStore.readRuntime();
     const ctvCommission = runtime.settings?.ctv_commission || {};
@@ -939,7 +969,7 @@ router.get('/ctv', async (req, res) => {
     }));
     res.render('admin/ctv', {
       layout: false, title: 'Quản Lý CTV',
-      admin: req.session.user, ctvList, withdrawals, ctvSales, assignableUsers, commissionGames, total:ctvList.length,
+      admin: req.session.user, ctvList, withdrawals, ctvSales, ctvSellingAccounts, assignableUsers, commissionGames, total:ctvList.length,
       page:1, totalPages:1, search, resetUrl: '/admin/ctv',
       ctvSearchMode: Boolean(search),
       success_msg:req.flash('success'), error_msg:['Đang dùng dữ liệu local vì MySQL chưa bật'], page_name:'ctv'

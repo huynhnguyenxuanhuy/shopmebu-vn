@@ -132,6 +132,24 @@ async function findAccTypeId(categoryId, slug) {
   return type?.id || null;
 }
 
+async function ensureAccTypeId(categoryId, slug) {
+  const names = {
+    'tu-chon': 'Tự Chọn',
+    random: 'Túi Mù Random',
+    vip: 'VIP Cao Cấp',
+    reg: 'Acc REG',
+    reroll: 'Acc Reroll'
+  };
+  if (!names[slug]) return null;
+  const existingId = await findAccTypeId(categoryId, slug);
+  if (existingId) return existingId;
+  const [result] = await db.query(
+    'INSERT INTO acc_types (category_id, name, slug) VALUES (?, ?, ?)',
+    [categoryId, names[slug], slug]
+  );
+  return result.insertId;
+}
+
 async function findLocalUser(login, password) {
   const key = login.trim().toLowerCase();
   const users = await readLocalUsers();
@@ -322,6 +340,7 @@ router.get('/tai-khoan', async (req, res) => {
     let ctvSales = [];
     let ctvWithdrawals = [];
     let ctvGames = [];
+    let ctvAccounts = [];
     if (user.role === 'staff') {
       await ensureCtvSchema();
       [ctvSales] = await db.query(`
@@ -338,6 +357,16 @@ router.get('/tai-khoan', async (req, res) => {
         ORDER BY created_at DESC LIMIT 30
       `, [userId]);
       [ctvGames] = await db.query('SELECT id, name, slug FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
+      [ctvAccounts] = await db.query(`
+        SELECT a.id, a.title, a.price, a.status, a.created_at,
+               SUBSTRING_INDEX(a.images, ',', 1) AS thumb,
+               g.name AS game_name, at.name AS type_name
+        FROM accounts a
+        JOIN game_categories g ON g.id=a.category_id
+        LEFT JOIN acc_types at ON at.id=a.acc_type_id
+        WHERE a.ctv_id=? AND a.status='available'
+        ORDER BY a.id DESC LIMIT 80
+      `, [userId]);
     }
 
     // Sync session user data after admin changes role/balance.
@@ -350,7 +379,7 @@ router.get('/tai-khoan', async (req, res) => {
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
       page: 'account',
-      user, orders, transactions, ctvSales, ctvWithdrawals, ctvGames,
+      user, orders, transactions, ctvSales, ctvWithdrawals, ctvGames, ctvAccounts,
       siteUrl: `${req.protocol}://${req.get('host')}`
     });
   } catch (err) {
@@ -362,6 +391,9 @@ router.get('/tai-khoan', async (req, res) => {
     const ctvSales = localUser.role === 'staff' ? await localStore.getCtvSales(req.session.user.id) : [];
     const ctvWithdrawals = localUser.role === 'staff' ? await localStore.getCtvWithdrawals(req.session.user.id) : [];
     const ctvGames = localUser.role === 'staff' ? localStore.categories : [];
+    const ctvAccounts = localUser.role === 'staff'
+      ? (await localStore.listAccounts({ status: 'available' })).filter(acc => Number(acc.ctv_id) === Number(req.session.user.id))
+      : [];
     req.session.user.balance = Number(localUser.balance || 0);
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
@@ -372,6 +404,7 @@ router.get('/tai-khoan', async (req, res) => {
       ctvSales,
       ctvWithdrawals,
       ctvGames,
+      ctvAccounts,
       siteUrl: `${req.protocol}://${req.get('host')}`
     });
   }
@@ -386,7 +419,7 @@ router.post('/ctv/dang-acc', ctvUpload.fields([
     return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
   }
 
-  const { game_slug, acc_username, acc_password, acc_info, title, price, rank_name, server, acc_type } = req.body;
+  const { game_slug, acc_username, acc_password, acc_info, title, price, server, acc_type } = req.body;
   const cleanPrice = Number(price || 0);
   const uploadedFiles = [
     ...((req.files && req.files.images) || []),
@@ -412,7 +445,7 @@ router.post('/ctv/dang-acc', ctvUpload.fields([
       return res.redirect('/tai-khoan#ctv');
     }
 
-    const accTypeId = await findAccTypeId(categoryRow.id, acc_type || 'tu-chon');
+    const accTypeId = await ensureAccTypeId(categoryRow.id, acc_type || 'tu-chon');
     await db.query(`
       INSERT INTO accounts
         (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status, ctv_id)
@@ -425,7 +458,7 @@ router.post('/ctv/dang-acc', ctvUpload.fields([
       acc_info || null,
       title || null,
       cleanPrice,
-      rank_name || null,
+      null,
       server || null,
       imageUrl,
       req.session.user.id
@@ -447,12 +480,50 @@ router.post('/ctv/dang-acc', ctvUpload.fields([
       acc_info,
       title,
       price: cleanPrice,
-      rank_name,
+      rank_name: null,
       server,
       image_url: imageUrl,
       ctv_id: req.session.user.id
     });
     req.flash('success', 'Đã đăng acc CTV vào dữ liệu local.');
+  }
+
+  res.redirect('/tai-khoan#ctv');
+});
+
+router.post('/ctv/acc/xoa/:id', async (req, res) => {
+  if (!req.session.user) {
+    req.flash('error', 'Vui lòng đăng nhập!');
+    return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
+  }
+
+  const accId = Number(req.params.id);
+  if (!Number.isInteger(accId) || accId <= 0) {
+    req.flash('error', 'Acc không hợp lệ.');
+    return res.redirect('/tai-khoan#ctv');
+  }
+
+  try {
+    await ensureCtvSchema();
+    const [[user]] = await db.query('SELECT id, role FROM users WHERE id=?', [req.session.user.id]);
+    if (!user || user.role !== 'staff') {
+      req.flash('error', 'Chỉ tài khoản CTV mới được xoá acc CTV.');
+      return res.redirect('/tai-khoan');
+    }
+    const [result] = await db.query(
+      'UPDATE accounts SET status="hidden" WHERE id=? AND ctv_id=? AND status="available"',
+      [accId, req.session.user.id]
+    );
+    req.flash(result.affectedRows ? 'success' : 'error', result.affectedRows ? 'Đã gỡ acc khỏi danh sách đang bán.' : 'Không tìm thấy acc đang bán thuộc CTV này.');
+  } catch (err) {
+    console.error(err);
+    const acc = await localStore.getAccount(accId);
+    if (!acc || Number(acc.ctv_id) !== Number(req.session.user.id) || acc.status !== 'available') {
+      req.flash('error', 'Không tìm thấy acc đang bán thuộc CTV này.');
+    } else {
+      await localStore.deleteAccount(accId);
+      req.flash('success', 'Đã gỡ acc khỏi danh sách đang bán.');
+    }
   }
 
   res.redirect('/tai-khoan#ctv');

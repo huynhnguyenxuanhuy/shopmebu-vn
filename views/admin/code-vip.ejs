@@ -42,11 +42,11 @@
               </div>
               <div class="form-group">
                 <label>Tiêu đề</label>
-                <input type="text" name="title" placeholder="Code VIP">
+                <input type="text" name="title" placeholder="VD: Code tri ân, code web">
               </div>
               <div class="form-group">
-                <label>Lưu ý sau khi mua</label>
-                <input type="text" name="acc_info" placeholder="Lưu ý hiển thị khi khách mua xong">
+                <label>Chi tiết</label>
+                <textarea name="acc_info" rows="3" placeholder="VD: combo 5 code tổng 25 lệnh hảo kiệt, 10 lệnh chiêm tinh, 3000 knb"></textarea>
               </div>
             </div>
             <button type="submit" class="btn btn-primary">✅ Đăng Code VIP</button>
@@ -64,6 +64,7 @@
                   <th>#ID</th>
                   <th>Tiêu đề</th>
                   <th>Code</th>
+                  <th>Chi tiết</th>
                   <th>Giá</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
@@ -76,13 +77,14 @@
                       <td><strong>#<%= item.id %></strong></td>
                       <td><%= item.title || 'Code VIP' %></td>
                       <td style="font-family:monospace;font-weight:800;"><%= item.acc_username %></td>
+                      <td style="font-size:12px;color:var(--text-muted);max-width:260px;white-space:normal;"><%= item.acc_info || '—' %></td>
                       <td style="font-weight:900;color:var(--primary);"><%= Number(item.price || 0).toLocaleString('vi-VN') %>đ</td>
                       <td><span class="status-badge <%= item.status === 'available' ? 'status-success' : 'status-pending' %>"><%= item.status === 'available' ? 'Còn bán' : item.status %></span></td>
                       <td style="font-size:12px;color:var(--text-muted);"><%= item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '—' %></td>
                     </tr>
                   <% }) %>
                 <% } else { %>
-                  <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có Code VIP nào</td></tr>
+                  <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có Code VIP nào</td></tr>
                 <% } %>
               </tbody>
             </table>

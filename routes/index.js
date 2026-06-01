@@ -103,9 +103,10 @@ router.get('/', async (req, res) => {
 
     // Acc mới nhất theo từng NHÓM game (gom tất cả sub-categories)
     const accByGame = {};
+    let codeVipAccs = [];
     for (const cat of categories) {
       const [accs] = await db.query(`
-        SELECT id, title, rank, rank AS rank_name, so_tuong, trang_phuc, ngoc, price,
+        SELECT id, title, rank, rank AS rank_name, acc_info, so_tuong, trang_phuc, ngoc, price,
                SUBSTRING_INDEX(images, ',', 1) AS thumb,
                SUBSTRING_INDEX(images, ',', 1) AS image_url
         FROM accounts
@@ -114,6 +115,23 @@ router.get('/', async (req, res) => {
       `, [cat.id]);
       accByGame[cat.slug] = accs;
     }
+
+    try {
+      const [[vplayCat]] = await db.query('SELECT id FROM game_categories WHERE slug="vplay-khac" AND is_active=1 LIMIT 1');
+      if (vplayCat) {
+        const [rows] = await db.query(`
+          SELECT a.id, a.title, a.rank, a.acc_info, a.price,
+                 SUBSTRING_INDEX(a.images, ',', 1) AS thumb,
+                 SUBSTRING_INDEX(a.images, ',', 1) AS image_url
+          FROM accounts a
+          LEFT JOIN acc_types at ON at.id=a.acc_type_id
+          WHERE a.category_id=? AND a.status='available'
+            AND (at.slug='vip' OR a.rank='Code VIP' OR a.title LIKE '%Code VIP%')
+          ORDER BY a.id DESC LIMIT 8
+        `, [vplayCat.id]);
+        codeVipAccs = rows;
+      }
+    } catch (_) {}
 
     // Gom tất cả acc theo nhóm game chính (bao gồm sub-categories)
     const gameGroups = ['huyen-anh-vo-lam', 'giang-ho-ky-ngo', 'vplay-khac'];
@@ -124,7 +142,7 @@ router.get('/', async (req, res) => {
       if (groupCatIds.length === 0) continue;
       const placeholders = groupCatIds.map(() => '?').join(',');
       const [merged] = await db.query(`
-        SELECT id, title, rank, rank AS rank_name, so_tuong, trang_phuc, ngoc, price,
+        SELECT id, title, rank, rank AS rank_name, acc_info, so_tuong, trang_phuc, ngoc, price,
                SUBSTRING_INDEX(images, ',', 1) AS thumb,
                SUBSTRING_INDEX(images, ',', 1) AS image_url
         FROM accounts
@@ -137,7 +155,7 @@ router.get('/', async (req, res) => {
     res.render('index', {
       page: 'home',
       title: 'Trang Chủ',
-      banners, categories, recentOrders, top5, accByGame,
+      banners, categories, recentOrders, top5, accByGame, codeVipAccs,
       content: mergeContent(contentSettings),
       totalAcc, soldCount,
       stats: { sold, members, online: online||0, views: views||0 }
@@ -150,6 +168,9 @@ router.get('/', async (req, res) => {
     categories.forEach(cat => {
       accByGame[cat.slug] = localAccs.filter(acc => acc.game_slug === cat.slug).slice(0, 8);
     });
+    const codeVipAccs = localAccs
+      .filter(acc => acc.game_slug === 'vplay-khac' && (acc.acc_type === 'vip' || String(acc.rank || acc.title || '').toLowerCase().includes('code vip')))
+      .slice(0, 8);
     const users = await localStore.readUsers();
     const runtime = await localStore.readRuntime();
     const resetAt = runtime.settings?.top_deposit_reset_at ? new Date(runtime.settings.top_deposit_reset_at) : null;
@@ -172,7 +193,7 @@ router.get('/', async (req, res) => {
     const soldCount = runtime.accounts.filter(acc => acc.status === 'sold').length;
     res.render('index', {
       page: 'home', title: 'Trang Chủ',
-      banners: [], categories, recentOrders: [], top5, accByGame,
+      banners: [], categories, recentOrders: [], top5, accByGame, codeVipAccs,
       content: await getSiteContent(),
       totalAcc: localAccs.length,
       soldCount,

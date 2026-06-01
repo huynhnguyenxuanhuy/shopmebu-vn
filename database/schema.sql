@@ -62,7 +62,8 @@ JOIN (
   SELECT 'Tự Chọn' AS name, 'tu-chon' AS slug UNION ALL
   SELECT 'Túi Mù Random', 'random' UNION ALL
   SELECT 'VIP Cao Cấp', 'vip' UNION ALL
-  SELECT 'Acc REG', 'reg'
+  SELECT 'Acc REG', 'reg' UNION ALL
+  SELECT 'Acc Reroll', 'reroll'
 ) t
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 

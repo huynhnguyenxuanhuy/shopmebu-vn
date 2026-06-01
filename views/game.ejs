@@ -33,6 +33,9 @@
 
     <%# ── FILTER BAR ── %>
     <form class="filter-bar" method="GET" action="/game/<%= category.slug %>">
+      <% if (filters.type) { %>
+        <input type="hidden" name="type" value="<%= filters.type %>">
+      <% } %>
       <div class="filter-group">
         <label>Rank:</label>
         <select name="rank">
@@ -65,9 +68,9 @@
     <%# ── ACC TYPES TABS ── %>
     <% if (accTypes && accTypes.length > 0) { %>
     <div class="acc-type-tabs">
-      <a href="/game/<%= category.slug %>" class="tab-btn <%= !filters.type ? 'active' : '' %>">Tất Cả</a>
+      <a href="/game/<%= category.slug %>?rank=<%= encodeURIComponent(filters.rank || '') %>&min_price=<%= filters.minPrice || '' %>&max_price=<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>&sort=<%= encodeURIComponent(filters.sort || 'newest') %>" class="tab-btn <%= !filters.type ? 'active' : '' %>">Tất Cả</a>
       <% accTypes.forEach(t => { %>
-        <a href="/game/<%= category.slug %>?type=<%= t.slug %>" class="tab-btn <%= filters.type === t.slug ? 'active' : '' %>"><%= t.name %></a>
+        <a href="/game/<%= category.slug %>?type=<%= encodeURIComponent(t.slug) %>&rank=<%= encodeURIComponent(filters.rank || '') %>&min_price=<%= filters.minPrice || '' %>&max_price=<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>&sort=<%= encodeURIComponent(filters.sort || 'newest') %>" class="tab-btn <%= filters.type === t.slug ? 'active' : '' %>"><%= t.name %></a>
       <% }) %>
     </div>
     <% } %>
@@ -95,7 +98,10 @@
         </div>
         <div class="acc-info">
           <div class="acc-id">#<%= acc.id %></div>
-          <h3 class="acc-rank"><%= acc.rank || 'Chưa xác định' %></h3>
+          <h3 class="acc-rank"><%= acc.title || acc.rank || 'Chưa xác định' %></h3>
+          <% if (acc.acc_info) { %>
+            <div class="acc-desc"><%= acc.acc_info %></div>
+          <% } %>
           <div class="acc-stats">
             <% if (acc.so_tuong > 0) { %><span title="Số tướng"><i class="fas fa-user-ninja"></i> <%= acc.so_tuong %></span><% } %>
             <% if (acc.trang_phuc > 0) { %><span title="Trang phục"><i class="fas fa-tshirt"></i> <%= acc.trang_phuc %></span><% } %>
@@ -116,13 +122,13 @@
     <% if (totalPages > 1) { %>
     <div class="pagination">
       <% if (currentPage > 1) { %>
-        <a href="?page=<%= currentPage-1 %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+        <a href="?page=<%= currentPage-1 %>&type=<%= encodeURIComponent(filters.type || '') %>&rank=<%= encodeURIComponent(filters.rank || '') %>&min_price=<%= filters.minPrice || '' %>&max_price=<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>&sort=<%= encodeURIComponent(filters.sort || 'newest') %>" class="page-btn"><i class="fas fa-chevron-left"></i></a>
       <% } %>
       <% for (let p = Math.max(1, currentPage-2); p <= Math.min(totalPages, currentPage+2); p++) { %>
-        <a href="?page=<%= p %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+        <a href="?page=<%= p %>&type=<%= encodeURIComponent(filters.type || '') %>&rank=<%= encodeURIComponent(filters.rank || '') %>&min_price=<%= filters.minPrice || '' %>&max_price=<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>&sort=<%= encodeURIComponent(filters.sort || 'newest') %>" class="page-btn <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
       <% } %>
       <% if (currentPage < totalPages) { %>
-        <a href="?page=<%= currentPage+1 %>&rank=<%= filters.rank %>&sort=<%= filters.sort %>" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+        <a href="?page=<%= currentPage+1 %>&type=<%= encodeURIComponent(filters.type || '') %>&rank=<%= encodeURIComponent(filters.rank || '') %>&min_price=<%= filters.minPrice || '' %>&max_price=<%= filters.maxPrice < 9999999 ? filters.maxPrice : '' %>&sort=<%= encodeURIComponent(filters.sort || 'newest') %>" class="page-btn"><i class="fas fa-chevron-right"></i></a>
       <% } %>
     </div>
     <% } %>
@@ -255,6 +261,12 @@
 .admin-card-btn:hover { opacity: 0.85; }
 .acc-id { color: #555; font-size: 0.72rem; margin-bottom: 3px; }
 .acc-rank { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.acc-desc {
+  color: #aaa; font-size: 0.78rem; line-height: 1.45;
+  margin: -2px 0 8px; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
 .acc-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .acc-stats span { font-size: 0.75rem; color: #aaa; }
 .acc-footer { display: flex; align-items: center; justify-content: space-between; }

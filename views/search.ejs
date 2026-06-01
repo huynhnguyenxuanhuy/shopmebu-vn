@@ -38,7 +38,10 @@
         </div>
         <div class="acc-info">
           <div class="acc-game-name"><%= acc.game_name %></div>
-          <h3 class="acc-rank"><%= acc.rank || 'N/A' %></h3>
+          <h3 class="acc-rank"><%= acc.title || acc.rank || 'N/A' %></h3>
+          <% if (acc.acc_info) { %>
+            <div class="acc-desc"><%= acc.acc_info %></div>
+          <% } %>
           <div class="acc-stats">
             <% if (acc.so_tuong > 0) { %><span><i class="fas fa-user-ninja"></i> <%= acc.so_tuong %></span><% } %>
             <% if (acc.trang_phuc > 0) { %><span><i class="fas fa-tshirt"></i> <%= acc.trang_phuc %></span><% } %>
@@ -100,6 +103,12 @@
 .acc-info { padding: 12px; }
 .acc-game-name { color: var(--primary); font-size: 0.72rem; font-weight: 600; margin-bottom: 3px; }
 .acc-rank { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.acc-desc {
+  color: #aaa; font-size: 0.78rem; line-height: 1.45;
+  margin: -2px 0 8px; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
 .acc-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .acc-stats span { color: #aaa; font-size: 0.75rem; }
 .acc-footer { display: flex; justify-content: flex-end; }

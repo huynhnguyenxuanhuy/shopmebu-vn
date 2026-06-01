@@ -97,6 +97,7 @@
                   <th>Username</th>
                   <th>Email</th>
                   <th>Số Dư CTV</th>
+                  <th>Acc Đang Bán</th>
                   <th>Role</th>
                   <th>Trạng Thái</th>
                   <th>Hành Động</th>
@@ -110,6 +111,7 @@
                       <td style="font-weight:800;"><%= ctv.username %></td>
                       <td style="font-size:12px;color:var(--text-muted);"><%= ctv.email || '—' %></td>
                       <td style="font-weight:900;color:#16a34a;"><%= money(ctv.ctv_balance) %></td>
+                      <td style="font-weight:900;color:var(--primary);"><%= Number(ctv.selling_count || 0).toLocaleString('vi-VN') %> acc</td>
                       <td><span class="badge-role badge-<%= ctv.role %>"><%= ctv.role === 'staff' ? 'CTV' : ctv.role %></span></td>
                       <td><%= ctv.is_active === 0 ? 'Khoá' : 'Hoạt động' %></td>
                       <td>
@@ -122,7 +124,43 @@
                     </tr>
                   <% }) %>
                 <% } else { %>
-                  <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted);">Không tìm thấy CTV hoặc user phù hợp</td></tr>
+                  <tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted);">Không tìm thấy CTV hoặc user phù hợp</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>Acc CTV Đang Bán</h3></div>
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>CTV</th>
+                  <th>Acc</th>
+                  <th>Game</th>
+                  <th>Loại</th>
+                  <th>Giá</th>
+                  <th>Ngày đăng</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (ctvSellingAccounts && ctvSellingAccounts.length > 0) { %>
+                  <% ctvSellingAccounts.forEach(acc => { %>
+                    <tr>
+                      <td><%= acc.username || ('CTV #' + acc.ctv_id) %></td>
+                      <td>#<%= acc.id %> - <%= acc.title || 'Acc đang bán' %></td>
+                      <td><%= acc.game_name || 'N/A' %></td>
+                      <td><%= acc.type_name || acc.acc_type || '—' %></td>
+                      <td style="font-weight:900;color:var(--primary);"><%= money(acc.price) %></td>
+                      <td style="font-size:12px;color:var(--text-muted);"><%= acc.created_at ? new Date(acc.created_at).toLocaleString('vi-VN') : '—' %></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có acc CTV nào đang bán</td></tr>
                 <% } %>
               </tbody>
             </table>

@@ -16,7 +16,8 @@ const fallbackAccTypes = [
   { name: 'Tự Chọn', slug: 'tu-chon' },
   { name: 'Túi Mù Random', slug: 'random' },
   { name: 'VIP Cao Cấp', slug: 'vip' },
-  { name: 'Acc REG', slug: 'reg' }
+  { name: 'Acc REG', slug: 'reg' },
+  { name: 'Acc Reroll', slug: 'reroll' }
 ];
 
 const fallbackThumbs = [
@@ -139,7 +140,7 @@ router.get('/:slug', async (req, res) => {
     const orderBy = orderMap[sort] || 'a.id DESC';
 
     const [accounts] = await db.query(`
-      SELECT a.id, a.title, a.rank, a.so_tuong, a.trang_phuc, a.ngoc, a.price,
+      SELECT a.id, a.title, a.rank, a.acc_info, a.so_tuong, a.trang_phuc, a.ngoc, a.price,
              SUBSTRING_INDEX(a.images, ',', 1) AS thumb
       FROM accounts a
       ${where}
@@ -158,8 +159,20 @@ router.get('/:slug', async (req, res) => {
     );
 
     // Acc types (loại acc: Tự Chọn, Đặc Biệt, VIP...)
+    const [rerollType] = await db.query(
+      'SELECT id FROM acc_types WHERE category_id=? AND slug="reroll"',
+      [category.id]
+    );
+    if (!rerollType.length) {
+      await db.query(
+        'INSERT INTO acc_types (category_id, name, slug) VALUES (?, "Acc Reroll", "reroll")',
+        [category.id]
+      );
+    }
+
     const [accTypes] = await db.query(
-      'SELECT * FROM acc_types WHERE category_id=?', [category.id]
+      'SELECT * FROM acc_types WHERE category_id=? ORDER BY FIELD(slug, "tu-chon", "random", "vip", "reg", "reroll"), name',
+      [category.id]
     );
 
     res.render('game', {

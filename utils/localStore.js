@@ -24,7 +24,10 @@ const accTypes = [
   { id: 9, category_id: 2, name: 'Acc REG', slug: 'reg' },
   { id: 10, category_id: 3, name: 'Acc Tự Chọn', slug: 'tu-chon' },
   { id: 11, category_id: 3, name: 'Acc Random Giá Rẻ', slug: 'random' },
-  { id: 12, category_id: 3, name: 'Acc VIP', slug: 'vip' }
+  { id: 12, category_id: 3, name: 'Acc VIP', slug: 'vip' },
+  { id: 13, category_id: 1, name: 'Acc Reroll', slug: 'reroll' },
+  { id: 14, category_id: 2, name: 'Acc Reroll', slug: 'reroll' },
+  { id: 15, category_id: 3, name: 'Acc Reroll', slug: 'reroll' }
 ];
 
 const demoAccounts = [

@@ -50,8 +50,8 @@
       <%# ── RIGHT: INFO ── %>
       <div class="detail-info">
         <div class="detail-id">Acc #<%= acc.id %></div>
-        <h1 class="detail-rank"><%= acc.rank || 'Chưa xác định' %></h1>
-        <% if (acc.title) { %><p class="detail-title-text"><%= acc.title %></p><% } %>
+        <h1 class="detail-rank"><%= acc.title || acc.rank || 'Chưa xác định' %></h1>
+        <% if (acc.acc_info) { %><p class="detail-title-text"><%= acc.acc_info %></p><% } %>
 
         <%# ── THÔNG SỐ ── %>
         <div class="detail-specs">
@@ -170,7 +170,7 @@
             <% } %>
           </div>
           <div class="acc-info">
-            <h3 class="acc-rank"><%= r.rank || 'N/A' %></h3>
+            <h3 class="acc-rank"><%= r.title || r.rank || 'N/A' %></h3>
             <div class="acc-footer">
               <span class="acc-price"><%= Number(r.price).toLocaleString('vi-VN') %>đ</span>
             </div>
