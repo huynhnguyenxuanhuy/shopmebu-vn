@@ -197,7 +197,7 @@
             <span class="bank-val"><%= napCode %></span>
             <button onclick="copyText('<%= napCode %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
           </div>
-          <form action="/nap-tien/momo-bao-da-chuyen" method="POST" class="momo-report-form" onsubmit="return confirm('Gửi yêu cầu nạp MoMo cho admin duyệt?')">
+          <form action="/nap-tien/momo-bao-da-chuyen" method="GET" class="momo-report-form" onsubmit="return confirm('Gửi yêu cầu nạp MoMo cho admin duyệt?')">
             <input type="hidden" name="amount" id="momoReportAmount" value="100000">
             <button type="submit" class="btn-momo-report">
               <i class="fas fa-paper-plane"></i> Tôi đã chuyển MoMo

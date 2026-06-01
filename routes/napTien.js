@@ -55,9 +55,9 @@ router.get('/', requireLogin, async (req, res) => {
   });
 });
 
-router.post('/momo-bao-da-chuyen', requireLogin, async (req, res) => {
+async function createMomoManualLog(req, res) {
   const user = req.session.user;
-  const amount = parseInt(req.body.amount, 10);
+  const amount = parseInt(req.body.amount || req.query.amount, 10);
   const napCode = `SMB${user.id}`;
 
   if (!amount || amount < 10000) {
@@ -100,6 +100,9 @@ router.post('/momo-bao-da-chuyen', requireLogin, async (req, res) => {
   }
 
   res.redirect('/nap-tien');
-});
+}
+
+router.get('/momo-bao-da-chuyen', requireLogin, createMomoManualLog);
+router.post('/momo-bao-da-chuyen', requireLogin, createMomoManualLog);
 
 module.exports = router;
