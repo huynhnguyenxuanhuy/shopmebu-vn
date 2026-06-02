@@ -648,7 +648,7 @@ img, video, canvas, svg { max-width: 100%; }
   .admin-sidebar-overlay.open { display:block; }
 
   /* Main takes full width */
-  .admin-main { width:100%; }
+  .admin-main { width:100%; margin-left:0; }
 
   /* Topbar gets hamburger */
   .admin-topbar { padding:12px 16px; }
@@ -1171,13 +1171,13 @@ img, video, canvas, svg { max-width: 100%; }
 .status-fail    { background:#fff1f1; color:#991b1b; }
 
 /* ===== ADMIN ===== */
-.admin-layout { display:flex; min-height:100vh; }
+.admin-layout { display:block; min-height:100vh; }
 .admin-sidebar {
-  width:250px; flex-shrink:0;
+  width:250px;
   background:linear-gradient(180deg, #0d0000 0%, #1a0000 100%);
   padding:0; overflow-y:auto;
   border-right:2px solid rgba(230,21,21,.20);
-  position:sticky; top:0; height:100vh;
+  position:fixed; left:0; top:0; bottom:0; height:100vh; z-index:180;
 }
 .admin-sidebar-logo {
   padding:22px 20px; border-bottom:1px solid rgba(255,255,255,.07);
@@ -1195,7 +1195,7 @@ img, video, canvas, svg { max-width: 100%; }
 .admin-nav-link:hover { background:rgba(230,21,21,.15); color:#fff; padding-left:24px; }
 .admin-nav-link.active { background:linear-gradient(90deg,rgba(230,21,21,.25),transparent); color:#fff; border-left:3px solid var(--primary); }
 .admin-nav-link .nav-icon { font-size:16px; width:20px; text-align:center; }
-.admin-main { flex:1; background:var(--bg); overflow-x:hidden; }
+.admin-main { min-height:100vh; margin-left:250px; background:var(--bg); overflow-x:hidden; }
 .admin-topbar {
   background:#fff; border-bottom:1.5px solid var(--border);
   padding:14px 28px; display:flex; align-items:center; justify-content:space-between;

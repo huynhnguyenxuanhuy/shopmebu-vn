@@ -603,34 +603,11 @@ if (ctvImageInput && ctvImagePreview) {
   });
 }
 if (ctvAccForm) {
-  ctvAccForm.addEventListener('submit', async event => {
-    if (!selectedCtvImages.length) return;
-    event.preventDefault();
-
+  ctvAccForm.addEventListener('submit', () => {
     const submitBtn = ctvAccForm.querySelector('button[type="submit"]');
-    const oldText = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đăng...';
-    }
-
-    const formData = new FormData(ctvAccForm);
-    formData.delete('images');
-    selectedCtvImages.forEach(file => formData.append('images', file, file.name || 'ctv-acc.png'));
-
-    try {
-      await fetch(ctvAccForm.action, {
-        method: ctvAccForm.method || 'POST',
-        body: formData
-      });
-      window.location.assign('/tai-khoan#ctv');
-    } catch (_) {
-      ctvAccForm.submit();
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = oldText;
-      }
     }
   });
 }
