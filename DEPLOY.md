@@ -152,7 +152,7 @@ pm2 logs shopmebu --lines 100
 
 Checklist test tay:
 - Đăng ký / đăng nhập local.
-- Đăng nhập Google/Facebook nếu đã cấu hình OAuth thật.
+- Đăng nhập Google nếu đã cấu hình OAuth thật.
 - Nạp tiền hiển thị đúng QR và nội dung chuyển khoản.
 - Webhook SePay cộng tiền đúng user.
 - Mua acc trừ tiền, giao acc, acc đã bán biến mất khỏi danh mục.

@@ -11,6 +11,8 @@ const flash      = require('connect-flash');
 const { boolEnv, validateProductionEnv } = require('./config/env');
 const { securityHeaders, sameOriginGuard, rateLimit } = require('./middleware/security');
 const passport   = require('./config/passport');
+const db         = require('./config/db');
+const MySQLSessionStore = require('./utils/mysqlSessionStore');
 
 const app = express();
 validateProductionEnv();
@@ -38,7 +40,14 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: process.env.FORM_BODY_LIMIT || '1mb' }));
 
 // ===== SESSION =====
+const useMySQLSessionStore = String(process.env.SESSION_STORE || '').toLowerCase() === 'mysql'
+  || (process.env.NODE_ENV === 'production' && String(process.env.SESSION_STORE || '').toLowerCase() !== 'memory');
+const sessionStore = useMySQLSessionStore
+  ? new MySQLSessionStore(db, { tableName: process.env.SESSION_TABLE || 'user_sessions' })
+  : undefined;
+
 app.use(session({
+  ...(sessionStore ? { store: sessionStore } : {}),
   name: process.env.SESSION_NAME || 'shopmebu.sid',
   secret: process.env.SESSION_SECRET || 'shopmebu_secret_key',
   resave: false,
@@ -105,7 +114,6 @@ app.use('/admin', rateLimit({
 app.use(sameOriginGuard);
 
 // ===== GLOBAL TEMPLATE VARS =====
-const db = require('./config/db');
 const localStore = require('./utils/localStore');
 app.use(async (req, res, next) => {
   res.locals.success_msg = req.flash('success');

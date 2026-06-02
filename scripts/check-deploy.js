@@ -33,16 +33,24 @@ if (process.env.BASE_URL && !/^https:\/\//.test(process.env.BASE_URL)) {
   warnings.push('BASE_URL nên dùng HTTPS khi deploy thật');
 }
 
+if (String(process.env.SESSION_STORE || '').toLowerCase() === 'memory') {
+  errors.push('SESSION_STORE=memory dễ làm mất đăng nhập trên VPS/cPanel nhiều process; hãy bỏ biến này hoặc dùng MySQL session');
+}
+
+if (process.env.NODE_ENV === 'production' && process.env.TRUST_PROXY !== '1') {
+  warnings.push('TRUST_PROXY nên là 1 khi chạy sau proxy/cPanel để cookie HTTPS ổn định');
+}
+
+if (process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== '1') {
+  warnings.push('COOKIE_SECURE nên là 1 khi chạy HTTPS thật');
+}
+
 if (!process.env.SEPAY_WEBHOOK_TOKEN || isPlaceholder(process.env.SEPAY_WEBHOOK_TOKEN)) {
   warnings.push('SEPAY_WEBHOOK_TOKEN chưa có, webhook nạp tự động chỉ test được sau khi cấu hình SePay');
 }
 
 if (!process.env.GOOGLE_CLIENT_ID || isPlaceholder(process.env.GOOGLE_CLIENT_ID)) {
   warnings.push('Google OAuth chưa cấu hình, nút Google sẽ dùng demo/fallback nếu app chưa có key thật');
-}
-
-if (!process.env.FACEBOOK_APP_ID || isPlaceholder(process.env.FACEBOOK_APP_ID)) {
-  warnings.push('Facebook OAuth chưa cấu hình, nút Facebook sẽ dùng demo/fallback nếu app chưa có key thật');
 }
 
 if (errors.length) {

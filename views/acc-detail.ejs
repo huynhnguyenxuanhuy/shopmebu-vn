@@ -36,8 +36,8 @@
           <img src="<%= galleryImages[0] %>" alt="<%= detailTitle %>" id="mainImg" class="main-img" onclick="openImageModal()" onerror="this.src='<%= detailFallbackThumb(acc.id) %>'">
           <span class="detail-badge"><%= acc.status === 'available' ? '🟢 Còn hàng' : '🔴 Hết hàng' %></span>
           <% if (galleryImages.length > 1) { %>
-            <button type="button" class="gallery-nav gallery-prev" onclick="event.stopPropagation();changeMainImage(-1)" aria-label="Ảnh trước"><i class="fas fa-chevron-left"></i></button>
-            <button type="button" class="gallery-nav gallery-next" onclick="event.stopPropagation();changeMainImage(1)" aria-label="Ảnh sau"><i class="fas fa-chevron-right"></i></button>
+            <button type="button" class="gallery-nav gallery-prev" onclick="event.stopPropagation();changeMainImage(-1)" aria-label="Ảnh trước"><i class="fas fa-chevron-left"></i><span>Ảnh trước</span></button>
+            <button type="button" class="gallery-nav gallery-next" onclick="event.stopPropagation();changeMainImage(1)" aria-label="Ảnh sau"><span>Ảnh sau</span><i class="fas fa-chevron-right"></i></button>
           <% } %>
         </div>
         <% if (galleryImages.length > 1) { %>
@@ -237,13 +237,16 @@
 .thumb-item.active, .thumb-item:hover { border-color: var(--primary); }
 .gallery-nav {
   position: absolute; top: 50%; transform: translateY(-50%);
-  width: 38px; height: 38px; border: 0; border-radius: 50%;
-  background: rgba(0,0,0,.58); color: #fff; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  min-width: 42px; height: 42px; border: 0; border-radius: 999px;
+  background: rgba(0,0,0,.72); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap:7px;
+  padding:0 13px; font-weight:800; font-size:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+  z-index:4;
 }
-.gallery-prev { left: 12px; }
-.gallery-next { right: 12px; }
-.gallery-nav:hover { background: rgba(0,0,0,.78); }
+.gallery-prev { left: 14px; }
+.gallery-next { right: 14px; }
+.gallery-nav:hover { background: rgba(0,0,0,.88); }
 
 .detail-id { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
 .detail-rank { font-size: 1.8rem; color: var(--text) !important; margin-bottom: 4px; }
@@ -411,6 +414,8 @@
   .main-img { height: 260px; }
   .detail-specs { grid-template-columns: 1fr; }
   .price-value { font-size: 1.55rem; }
+  .gallery-nav { width:42px; min-width:42px; padding:0; border-radius:50%; }
+  .gallery-nav span { display:none; }
   .image-modal-nav { width: 40px; height: 40px; }
 }
 </style>
@@ -538,6 +543,10 @@ function buyThisAcc() {
         btn.innerHTML = '✅ Đã mua thành công';
         btn.className = 'btn-buy-detail sold';
       } else {
+        if (data.redirect && data.redirect.includes('/dang-nhap')) {
+          window.location.href = data.redirect;
+          return;
+        }
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Mua Ngay';
         document.getElementById('buyModalBody').innerHTML = `

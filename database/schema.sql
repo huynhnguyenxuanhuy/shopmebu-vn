@@ -150,12 +150,14 @@ CREATE INDEX idx_payment_logs_processed ON payment_logs (is_processed);
 -- ===== TOP 5 NẠP TIỀN =====
 CREATE TABLE IF NOT EXISTS top_depositors (
   id          INT AUTO_INCREMENT PRIMARY KEY,
-  user_id     INT NOT NULL UNIQUE,
+  user_id     INT NOT NULL,
   period      VARCHAR(7)    NOT NULL,  -- '2025-01' (năm-tháng)
   total       DECIMAL(15,0) DEFAULT 0,
   count       INT           DEFAULT 0,
   rank        INT           DEFAULT 0,
   updated_at  DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_top_depositors_user_period (user_id, period),
+  INDEX idx_top_depositors_user_id (user_id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 

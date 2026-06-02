@@ -1,5 +1,17 @@
 const crypto = require('crypto');
 
+function normalizeHost(host = '') {
+  return String(host).trim().toLowerCase().replace(/^www\./, '');
+}
+
+function allowedRequestHosts(req) {
+  const hosts = new Set([normalizeHost(req.headers.host)]);
+  try {
+    if (process.env.BASE_URL) hosts.add(normalizeHost(new URL(process.env.BASE_URL).host));
+  } catch (_) {}
+  return hosts;
+}
+
 function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -21,8 +33,7 @@ function sameOriginGuard(req, res, next) {
 
   try {
     const sourceUrl = new URL(source);
-    const host = req.headers.host;
-    if (sourceUrl.host === host) return next();
+    if (allowedRequestHosts(req).has(normalizeHost(sourceUrl.host))) return next();
   } catch (_) {
     return res.status(403).json({ success: false, message: 'Nguồn yêu cầu không hợp lệ!' });
   }

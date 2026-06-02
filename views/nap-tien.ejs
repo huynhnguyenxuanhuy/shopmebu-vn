@@ -1,4 +1,5 @@
 <%# ===== TRANG NẠP TIỀN ===== %>
+<% const bonusPctView = 0; %>
 
 <div class="naptien-page">
   <div class="container">
@@ -29,11 +30,11 @@
     </div>
 
     <%# ── BONUS BANNER ── %>
-    <% if (bonus > 0) { %>
+    <% if (bonusPctView > 0) { %>
     <div class="bonus-banner">
       <i class="fas fa-gift"></i>
       <div>
-        <strong>🎁 KHUYẾN MÃI: Nạp tiền +<%= bonus %>% cho mỗi giao dịch!</strong>
+        <strong>🎁 KHUYẾN MÃI: Nạp tiền +<%= bonusPctView %>% cho mỗi giao dịch!</strong>
         <span>Áp dụng cho MoMo & TPBank • Không giới hạn số lần nạp</span>
       </div>
     </div>
@@ -52,7 +53,7 @@
           <% [10000, 20000, 50000, 100000, 200000, 500000].forEach((amount, idx) => { %>
             <button type="button" class="amount-choice <%= amount === 100000 ? 'active' : '' %>" data-amount="<%= amount %>" onclick="setAmount(<%= amount %>)">
               <span><%= amount.toLocaleString('vi-VN') %>đ</span>
-              <% if (bonus > 0) { %><small>Nhận <%= Math.floor(amount * (100 + Number(bonus)) / 100).toLocaleString('vi-VN') %>đ</small><% } %>
+              <% if (bonusPctView > 0) { %><small>Nhận <%= Math.floor(amount * (100 + Number(bonusPctView)) / 100).toLocaleString('vi-VN') %>đ</small><% } %>
             </button>
           <% }) %>
         </div>
@@ -65,14 +66,14 @@
           </div>
         </div>
 
-        <div class="deposit-summary" style="<%= bonus > 0 ? '' : 'grid-template-columns: 1fr 1fr;' %>">
+        <div class="deposit-summary" style="grid-template-columns: 1fr 1fr;">
           <div>
             <span>Số tiền nạp</span>
             <strong id="selectedAmountText">100.000đ</strong>
           </div>
-          <% if (bonus > 0) { %>
+          <% if (bonusPctView > 0) { %>
           <div>
-            <span>Bonus +<%= bonus %>%</span>
+            <span>Bonus +<%= bonusPctView %>%</span>
             <strong id="bonusAmountText">0đ</strong>
           </div>
           <% } %>
@@ -214,7 +215,7 @@
         <li><strong style="color:var(--primary)">Nạp tự động (TPBank):</strong> Chọn số tiền → bấm Tiến Hành → quét QR TPBank. Số dư cộng trong <strong>30 giây</strong>.</li>
         <li><strong style="color:#ae2070">Nạp thủ công (MoMo):</strong> Quét QR MoMo phía dưới, ghi đúng nội dung <strong><%= napCode %></strong>. Admin sẽ duyệt trong 15–30 phút.</li>
         <li>Tối thiểu 10.000đ cho cả hai phương thức.</li>
-        <% if (bonus > 0) { %><li>Bạn nhận thêm <strong>+<%= bonus %>% bonus</strong> trên số tiền nạp</li><% } %>
+        <% if (bonusPctView > 0) { %><li>Bạn nhận thêm <strong>+<%= bonusPctView %>% bonus</strong> trên số tiền nạp</li><% } %>
       </ol>
       <div class="howto-note">
         <i class="fas fa-info-circle"></i>
@@ -225,13 +226,13 @@
     </div>
 
     <%# ── BẢNG KHUYẾN MÃI (chỉ hiện khi bonus > 0) ── %>
-    <% if (bonus > 0) { %>
+    <% if (bonusPctView > 0) { %>
     <div class="bonus-table-box">
       <h3><i class="fas fa-percentage"></i> Bảng Khuyến Mãi</h3>
       <div class="bonus-table">
         <div class="bonus-row header">
           <span>Số Tiền Nạp</span>
-          <span>Bonus +<%= bonus %>%</span>
+          <span>Bonus +<%= bonusPctView %>%</span>
           <span>Thực Nhận</span>
         </div>
         <% [[10000,1000,11000],[20000,2000,22000],[50000,5000,55000],[100000,10000,110000],[200000,20000,220000],[500000,50000,550000]].forEach(([nap, bn, total]) => { %>
@@ -835,7 +836,7 @@ function showToast(msg, color) {
 
 const tpbankQrBase = '<%= tpbQRBase || "" %>';
 const napContent = '<%= napCode %>';
-const bonusPct = <%= Number(bonus) %>;
+const bonusPct = <%= Number(bonusPctView) %>;
 
 function formatMoney(amount) {
   return Number(amount || 0).toLocaleString('vi-VN') + 'đ';

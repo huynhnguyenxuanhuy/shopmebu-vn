@@ -90,7 +90,38 @@ router.get('/', async (req, res) => {
         ORDER BY t.total DESC LIMIT 5
       `, [period]);
       top5 = rows;
-    } catch (_) { /* bảng top_depositors chưa có */ }
+
+      if (!top5.length) {
+        const [txRows] = await db.query(`
+          SELECT u.username, SUM(t.amount) AS total, COUNT(*) AS count
+          FROM transactions t
+          JOIN users u ON u.id=t.user_id
+          WHERE t.type='deposit'
+            AND t.status='success'
+            AND DATE_FORMAT(t.created_at, '%Y-%m')=?
+          GROUP BY t.user_id, u.username
+          HAVING total > 0
+          ORDER BY total DESC LIMIT 5
+        `, [period]);
+        top5 = txRows;
+      }
+    } catch (_) {
+      try {
+        const period = new Date().toISOString().slice(0,7);
+        const [txRows] = await db.query(`
+          SELECT u.username, SUM(t.amount) AS total, COUNT(*) AS count
+          FROM transactions t
+          JOIN users u ON u.id=t.user_id
+          WHERE t.type='deposit'
+            AND t.status='success'
+            AND DATE_FORMAT(t.created_at, '%Y-%m')=?
+          GROUP BY t.user_id, u.username
+          HAVING total > 0
+          ORDER BY total DESC LIMIT 5
+        `, [period]);
+        top5 = txRows;
+      } catch (_) {}
+    }
 
     // Thống kê
     const [[{ sold }]]    = await db.query('SELECT COUNT(*) as sold FROM orders WHERE status="completed"');

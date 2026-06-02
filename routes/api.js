@@ -9,6 +9,11 @@ const router  = express.Router();
 const db      = require('../config/db');
 const localStore = require('../utils/localStore');
 const { stableRef } = require('../middleware/security');
+const {
+  ensureTopDepositorsSchema,
+  upsertTopDepositor,
+  refreshTopDepositorRanks
+} = require('../utils/topDepositors');
 
 /* ─────────────────────────────────────────────
    HELPER: Tìm user từ nội dung chuyển khoản
@@ -24,10 +29,25 @@ async function findUserFromContent(content = '') {
   return user || null;
 }
 
+function loginRedirectFromReferer(req) {
+  try {
+    const ref = req.get('referer');
+    if (!ref) return '/dang-nhap';
+    const url = new URL(ref);
+    const currentHost = String(req.headers.host || '').replace(/^www\./, '');
+    const refHost = String(url.host || '').replace(/^www\./, '');
+    if (refHost !== currentHost) return '/dang-nhap';
+    return '/dang-nhap?returnUrl=' + encodeURIComponent(url.pathname + url.search);
+  } catch (_) {
+    return '/dang-nhap';
+  }
+}
+
 /* ─────────────────────────────────────────────
    HELPER: Cộng tiền & ghi log
    ───────────────────────────────────────────── */
 async function creditUser(userId, amount, method, ref, content) {
+  await ensureTopDepositorsSchema(db);
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -35,8 +55,7 @@ async function creditUser(userId, amount, method, ref, content) {
     // Lấy số dư hiện tại
     const [[user]] = await conn.query('SELECT balance FROM users WHERE id=? FOR UPDATE', [userId]);
     const before = Number(user.balance);
-    const bonus = 0; // bonus disabled // +10%
-    const total  = amount + bonus;
+    const total  = amount;
     const after  = before + total;
 
     // Cập nhật số dư
@@ -51,22 +70,12 @@ async function creditUser(userId, amount, method, ref, content) {
 
     // Cập nhật top_depositors
     const period = new Date().toISOString().slice(0, 7);
-    await conn.query(`
-      INSERT INTO top_depositors (user_id, period, total, count)
-      VALUES (?, ?, ?, 1)
-      ON DUPLICATE KEY UPDATE total=total+?, count=count+1
-    `, [userId, period, total, total]);
-
-    // Cập nhật rank top 5 bằng từng query để không phụ thuộc multipleStatements.
-    await conn.query('SET @rank = 0');
-    await conn.query(
-      'UPDATE top_depositors SET rank = (@rank := @rank + 1) WHERE period=? ORDER BY total DESC',
-      [period]
-    );
+    await upsertTopDepositor(conn, userId, period, total);
+    await refreshTopDepositorRanks(conn, period);
 
     await conn.commit();
-    console.log(`✅ Cộng ${total.toLocaleString('vi-VN')}đ (+${bonus.toLocaleString()}đ KM) cho user #${userId}`);
-    return { success: true, amount: total, bonus, after };
+    console.log(`✅ Cộng ${total.toLocaleString('vi-VN')}đ cho user #${userId}`);
+    return { success: true, amount: total, bonus: 0, after };
   } catch (err) {
     await conn.rollback();
     throw err;
@@ -172,7 +181,11 @@ router.post('/webhook/sepay', express.json(), async (req, res) => {
    ───────────────────────────────────────────── */
 router.post('/buy/:accId', async (req, res) => {
   if (!req.session.user) {
-    return res.json({ success: false, message: 'Vui lòng đăng nhập!' });
+    return res.status(401).json({
+      success: false,
+      message: 'Vui lòng đăng nhập!',
+      redirect: loginRedirectFromReferer(req)
+    });
   }
 
   const accId  = parseInt(req.params.accId);
@@ -398,13 +411,18 @@ router.post('/ctv/withdraw', async (req, res) => {
       withdrawal: { id: result.insertId, ctv_id: req.session.user.id, amount: amt, bank_info: bankInfo, status: 'pending' }
     });
   } catch (err) {
-    const users = await localStore.readUsers();
-    const user = users.find(u => Number(u.id) === Number(req.session.user.id));
-    if (!user || user.role !== 'staff' || (Number(user.ctv_balance) || 0) < amt) {
-      return res.json({ success: false, message: 'Số dư CTV không đủ.' });
+    try {
+      const users = await localStore.readUsers();
+      const user = users.find(u => Number(u.id) === Number(req.session.user.id));
+      if (!user || user.role !== 'staff' || (Number(user.ctv_balance) || 0) < amt) {
+        return res.json({ success: false, message: 'Số dư CTV không đủ.' });
+      }
+      const w = await localStore.createCtvWithdrawal(req.session.user.id, amt, bankInfo);
+      return res.json({ success: true, message: 'Yêu cầu rút tiền đã gửi, chờ admin duyệt.', withdrawal: w });
+    } catch (fallbackErr) {
+      console.error('Lỗi rút tiền CTV local:', fallbackErr);
+      return res.json({ success: false, message: 'Lỗi hệ thống khi gửi yêu cầu rút tiền.' });
     }
-    const w = await localStore.createCtvWithdrawal(req.session.user.id, amt, bankInfo);
-    return res.json({ success: true, message: 'Yêu cầu rút tiền đã gửi, chờ admin duyệt.', withdrawal: w });
   }
 });
 

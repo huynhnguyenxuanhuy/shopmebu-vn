@@ -13,6 +13,7 @@ const passport  = require('../config/passport');
 const localStore = require('../utils/localStore');
 
 const localUsersFile = path.join(__dirname, '../data/local-users.json');
+const CTV_ACCOUNT_URL = '/tai-khoan#ctv';
 const ctvUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -40,8 +41,28 @@ function setSessionFromUser(req, user) {
     email:    user.email,
     role:     user.role     || 'customer',
     balance:  Number(user.balance) || 0,
+    ctv_balance: Number(user.ctv_balance) || 0,
     avatar:   user.avatar   || null
   };
+}
+
+function safeReturnUrl(returnUrl, fallback = '/') {
+  const target = String(returnUrl || fallback);
+  if (!target.startsWith('/') || target.startsWith('//')) return fallback;
+  return target;
+}
+
+function redirectAfterSessionSave(req, res, target) {
+  req.session.save(err => {
+    if (err) console.error('Lỗi lưu session:', err);
+    res.redirect(target);
+  });
+}
+
+function requireUserLogin(req, res, next) {
+  if (req.session.user) return next();
+  req.flash('error', 'Vui lòng đăng nhập!');
+  return res.redirect('/dang-nhap?returnUrl=' + encodeURIComponent(CTV_ACCOUNT_URL));
 }
 
 async function readLocalUsers() {
@@ -115,10 +136,15 @@ async function ensureCtvSchema() {
       account_id INT NOT NULL,
       order_id INT DEFAULT NULL,
       amount DECIMAL(15,0) NOT NULL,
+      commission_percent DECIMAL(5,2) DEFAULT 100,
       status ENUM('credited') DEFAULT 'credited',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB
   `);
+  const [percentCol] = await db.query("SHOW COLUMNS FROM ctv_sales LIKE 'commission_percent'");
+  if (!percentCol.length) {
+    await db.query('ALTER TABLE ctv_sales ADD COLUMN commission_percent DECIMAL(5,2) DEFAULT 100');
+  }
 }
 
 async function findCategoryBySlug(slug) {
@@ -167,12 +193,11 @@ async function findLocalUser(login, password) {
 }
 
 async function setDevOAuthSession(req, provider) {
-  const providerName = provider === 'facebook' ? 'Facebook' : 'Google';
   const username = `${provider}_demo`;
   const email = `${provider}_demo@shopmebu.vn`;
   const { user, exists } = await createLocalUser({ username, email, password: '', provider });
   setSessionFromUser(req, user || exists);
-  req.flash('success', `Đã đăng nhập demo bằng ${providerName}. Khi deploy thật chỉ cần cấu hình OAuth key trong .env.`);
+  req.flash('success', 'Đã đăng nhập demo bằng Google. Khi deploy thật chỉ cần cấu hình OAuth key trong .env.');
 }
 
 function hasPassportStrategy(name) {
@@ -223,7 +248,7 @@ router.post('/dang-ky', async (req, res) => {
     // Tự đăng nhập luôn
     req.session.user = { id: result.insertId, username: cleanUsername, role: 'customer', balance: 0 };
     req.flash('success', `Chào mừng ${cleanUsername}! Tài khoản đã được tạo thành công 🎉`);
-    res.redirect('/');
+    redirectAfterSessionSave(req, res, '/');
   } catch (err) {
     console.error('Lỗi đăng ký:', err);
     try {
@@ -234,7 +259,7 @@ router.post('/dang-ky', async (req, res) => {
       }
       setSessionFromUser(req, user);
       req.flash('success', `Chào mừng ${cleanUsername}! Tài khoản local đã được tạo thành công.`);
-      return res.redirect('/');
+      return redirectAfterSessionSave(req, res, '/');
     } catch (fallbackErr) {
       console.error('Lỗi đăng ký local:', fallbackErr);
       req.flash('error', 'Lỗi hệ thống, vui lòng thử lại!');
@@ -246,13 +271,13 @@ router.post('/dang-ky', async (req, res) => {
 // ===== ĐĂNG NHẬP =====
 router.get('/dang-nhap', (req, res) => {
   if (req.session.user) return res.redirect('/');
-  const returnUrl = req.query.returnUrl || '/';
+  const returnUrl = safeReturnUrl(req.query.returnUrl, '/');
   res.render('dang-nhap', { title: 'Đăng Nhập', page: 'auth', returnUrl, query: req.query.error || '' });
 });
 
 router.post('/dang-nhap', async (req, res) => {
   const { username, password, returnUrl } = req.body;
-  const redirect = returnUrl || '/';
+  const redirect = safeReturnUrl(returnUrl, '/');
 
   if (!username || !password) {
     req.flash('error', 'Vui lòng điền đầy đủ thông tin!');
@@ -279,11 +304,12 @@ router.post('/dang-nhap', async (req, res) => {
       email:    user.email,
       role:     user.role,
       balance:  Number(user.balance),
+      ctv_balance: Number(user.ctv_balance) || 0,
       avatar:   user.avatar
     };
 
     req.flash('success', `Chào mừng trở lại, ${user.username}!`);
-    res.redirect(redirect.startsWith('/') ? redirect : '/');
+    redirectAfterSessionSave(req, res, redirect);
   } catch (err) {
     console.error('Lỗi đăng nhập:', err);
     try {
@@ -294,7 +320,7 @@ router.post('/dang-nhap', async (req, res) => {
       }
       setSessionFromUser(req, localUser);
       req.flash('success', `Chào mừng trở lại, ${localUser.username}!`);
-      return res.redirect(redirect.startsWith('/') ? redirect : '/');
+      return redirectAfterSessionSave(req, res, redirect);
     } catch (fallbackErr) {
       console.error('Lỗi đăng nhập local:', fallbackErr);
       req.flash('error', 'Lỗi hệ thống, vui lòng thử lại!');
@@ -324,6 +350,13 @@ router.get('/tai-khoan', async (req, res) => {
 
     // Lấy thông tin user mới nhất
     const [[user]] = await db.query('SELECT * FROM users WHERE id=?', [userId]);
+    if (!user) {
+      return req.session.destroy(() => {
+        res.clearCookie(process.env.SESSION_NAME || 'shopmebu.sid');
+        res.clearCookie('connect.sid');
+        res.redirect('/dang-nhap?returnUrl=/tai-khoan');
+      });
+    }
 
     // Lịch sử mua hàng
     const [orders] = await db.query(`
@@ -347,31 +380,46 @@ router.get('/tai-khoan', async (req, res) => {
     let ctvGames = [];
     let ctvAccounts = [];
     if (user.role === 'staff') {
-      await ensureCtvSchema();
-      [ctvSales] = await db.query(`
-        SELECT cs.*, a.acc_username, a.title, a.rank, g.name AS game_name
-        FROM ctv_sales cs
-        LEFT JOIN accounts a ON a.id=cs.account_id
-        LEFT JOIN game_categories g ON g.id=a.category_id
-        WHERE cs.ctv_id=?
-        ORDER BY cs.created_at DESC LIMIT 30
-      `, [userId]);
-      [ctvWithdrawals] = await db.query(`
-        SELECT * FROM ctv_withdrawals
-        WHERE ctv_id=?
-        ORDER BY created_at DESC LIMIT 30
-      `, [userId]);
-      [ctvGames] = await db.query('SELECT id, name, slug FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
-      [ctvAccounts] = await db.query(`
-        SELECT a.id, a.title, a.price, a.status, a.created_at,
-               SUBSTRING_INDEX(a.images, ',', 1) AS thumb,
-               g.name AS game_name, at.name AS type_name
-        FROM accounts a
-        JOIN game_categories g ON g.id=a.category_id
-        LEFT JOIN acc_types at ON at.id=a.acc_type_id
-        WHERE a.ctv_id=? AND a.status='available'
-        ORDER BY a.id DESC LIMIT 80
-      `, [userId]);
+      try {
+        await ensureCtvSchema();
+        [ctvSales] = await db.query(`
+          SELECT cs.*, a.acc_username, a.title, a.rank, g.name AS game_name
+          FROM ctv_sales cs
+          LEFT JOIN accounts a ON a.id=cs.account_id
+          LEFT JOIN game_categories g ON g.id=a.category_id
+          WHERE cs.ctv_id=?
+          ORDER BY cs.created_at DESC LIMIT 30
+        `, [userId]);
+        [ctvWithdrawals] = await db.query(`
+          SELECT * FROM ctv_withdrawals
+          WHERE ctv_id=?
+          ORDER BY created_at DESC LIMIT 30
+        `, [userId]);
+        [ctvGames] = await db.query('SELECT id, name, slug FROM game_categories WHERE is_active=1 ORDER BY sort_order, name ASC');
+        [ctvAccounts] = await db.query(`
+          SELECT a.id, a.title, a.price, a.status, a.created_at,
+                 SUBSTRING_INDEX(a.images, ',', 1) AS thumb,
+                 g.name AS game_name, at.name AS type_name
+          FROM accounts a
+          JOIN game_categories g ON g.id=a.category_id
+          LEFT JOIN acc_types at ON at.id=a.acc_type_id
+          WHERE a.ctv_id=? AND a.status='available'
+          ORDER BY a.id DESC LIMIT 80
+        `, [userId]);
+      } catch (ctvErr) {
+        console.error('Lỗi tải khu CTV:', ctvErr);
+        ctvGames = localStore.categories;
+        try {
+          ctvSales = await localStore.getCtvSales(userId);
+          ctvWithdrawals = await localStore.getCtvWithdrawals(userId);
+          ctvAccounts = (await localStore.listAccounts({ status: 'available' }))
+            .filter(acc => Number(acc.ctv_id) === Number(userId));
+        } catch (_) {
+          ctvSales = [];
+          ctvWithdrawals = [];
+          ctvAccounts = [];
+        }
+      }
     }
 
     // Sync session user data after admin changes role/balance.
@@ -389,17 +437,29 @@ router.get('/tai-khoan', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    const users = await localStore.readUsers();
-    const localUser = users.find(u => Number(u.id) === Number(req.session.user.id)) || req.session.user;
-    const orders = await localStore.getUserOrders(req.session.user.id);
-    const transactions = await localStore.getUserTransactions(req.session.user.id);
-    const ctvSales = localUser.role === 'staff' ? await localStore.getCtvSales(req.session.user.id) : [];
-    const ctvWithdrawals = localUser.role === 'staff' ? await localStore.getCtvWithdrawals(req.session.user.id) : [];
-    const ctvGames = localUser.role === 'staff' ? localStore.categories : [];
-    const ctvAccounts = localUser.role === 'staff'
-      ? (await localStore.listAccounts({ status: 'available' })).filter(acc => Number(acc.ctv_id) === Number(req.session.user.id))
-      : [];
-    req.session.user.balance = Number(localUser.balance || 0);
+    let localUser = req.session.user;
+    let orders = [];
+    let transactions = [];
+    let ctvSales = [];
+    let ctvWithdrawals = [];
+    let ctvGames = [];
+    let ctvAccounts = [];
+    try {
+      const users = await localStore.readUsers();
+      localUser = users.find(u => Number(u.id) === Number(req.session.user.id)) || req.session.user;
+      orders = await localStore.getUserOrders(req.session.user.id);
+      transactions = await localStore.getUserTransactions(req.session.user.id);
+      if (localUser.role === 'staff') {
+        ctvSales = await localStore.getCtvSales(req.session.user.id);
+        ctvWithdrawals = await localStore.getCtvWithdrawals(req.session.user.id);
+        ctvGames = localStore.categories;
+        ctvAccounts = (await localStore.listAccounts({ status: 'available' }))
+          .filter(acc => Number(acc.ctv_id) === Number(req.session.user.id));
+      }
+    } catch (fallbackErr) {
+      console.error('Lỗi tải tài khoản local:', fallbackErr);
+    }
+    req.session.user.balance = Number(localUser.balance || req.session.user.balance || 0);
     res.render('tai-khoan', {
       title: 'Tài Khoản Của Tôi',
       page: 'account',
@@ -415,15 +475,10 @@ router.get('/tai-khoan', async (req, res) => {
   }
 });
 
-router.post('/ctv/dang-acc', ctvUpload.fields([
+router.post('/ctv/dang-acc', requireUserLogin, ctvUpload.fields([
   { name: 'images', maxCount: 8 },
   { name: 'image', maxCount: 8 }
 ]), async (req, res) => {
-  if (!req.session.user) {
-    req.flash('error', 'Vui lòng đăng nhập!');
-    return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
-  }
-
   const { game_slug, acc_username, acc_password, acc_info, title, price, server, acc_type } = req.body;
   const cleanPrice = Number(price || 0);
   const uploadedFiles = [
@@ -471,37 +526,37 @@ router.post('/ctv/dang-acc', ctvUpload.fields([
     req.flash('success', 'Đã đăng acc CTV, acc đã lên kho bán.');
   } catch (err) {
     console.error(err);
-    const users = await localStore.readUsers();
-    const localUser = users.find(u => Number(u.id) === Number(req.session.user.id));
-    if (!localUser || localUser.role !== 'staff') {
-      req.flash('error', 'Chỉ tài khoản CTV mới được tự đăng acc.');
-      return res.redirect('/tai-khoan');
+    try {
+      const users = await localStore.readUsers();
+      const localUser = users.find(u => Number(u.id) === Number(req.session.user.id));
+      if (!localUser || localUser.role !== 'staff') {
+        req.flash('error', 'Chỉ tài khoản CTV mới được tự đăng acc.');
+        return res.redirect('/tai-khoan');
+      }
+      await localStore.addAccount({
+        game_slug,
+        acc_type: acc_type || 'tu-chon',
+        acc_username,
+        acc_password,
+        acc_info,
+        title,
+        price: cleanPrice,
+        rank_name: null,
+        server,
+        image_url: imageUrl,
+        ctv_id: req.session.user.id
+      });
+      req.flash('success', 'Đã đăng acc CTV vào dữ liệu local.');
+    } catch (fallbackErr) {
+      console.error('Lỗi đăng acc CTV local:', fallbackErr);
+      req.flash('error', 'Lỗi hệ thống khi đăng acc CTV, vui lòng thử lại.');
     }
-    await localStore.addAccount({
-      game_slug,
-      acc_type: acc_type || 'tu-chon',
-      acc_username,
-      acc_password,
-      acc_info,
-      title,
-      price: cleanPrice,
-      rank_name: null,
-      server,
-      image_url: imageUrl,
-      ctv_id: req.session.user.id
-    });
-    req.flash('success', 'Đã đăng acc CTV vào dữ liệu local.');
   }
 
   res.redirect('/tai-khoan#ctv');
 });
 
-router.post('/ctv/acc/xoa/:id', async (req, res) => {
-  if (!req.session.user) {
-    req.flash('error', 'Vui lòng đăng nhập!');
-    return res.redirect('/dang-nhap?returnUrl=/tai-khoan');
-  }
-
+router.post('/ctv/acc/xoa/:id', requireUserLogin, async (req, res) => {
   const accId = Number(req.params.id);
   if (!Number.isInteger(accId) || accId <= 0) {
     req.flash('error', 'Acc không hợp lệ.');
@@ -540,7 +595,7 @@ router.post('/ctv/acc/xoa/:id', async (req, res) => {
 router.get('/auth/google', async (req, res, next) => {
   if (!hasPassportStrategy('google')) {
     await setDevOAuthSession(req, 'google');
-    return res.redirect('/');
+    return redirectAfterSessionSave(req, res, '/');
   }
   return passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
@@ -550,7 +605,7 @@ router.get('/auth/google/callback',
   (req, res) => {
     setSessionFromUser(req, req.user);
     req.flash('success', `Chào mừng ${req.user.username}! Đã đăng nhập qua Google 🎉`);
-    res.redirect('/');
+    redirectAfterSessionSave(req, res, '/');
   }
 );
 

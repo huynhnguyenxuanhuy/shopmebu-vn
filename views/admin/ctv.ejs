@@ -2,12 +2,12 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" href="/favicon.ico?v=12" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=12">
-  <link rel="apple-touch-icon" href="/favicon.png?v=12">
+  <link rel="icon" href="/favicon.ico?v=13" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
+  <link rel="apple-touch-icon" href="/favicon.png?v=13">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <title>Quản Lý CTV - Admin SHOPMEBU</title>
-  <link rel="stylesheet" href="/css/style.css?v=5">
+  <link rel="stylesheet" href="/css/style.css?v=13">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 </head>
@@ -35,6 +35,57 @@
       <% if (error_msg && error_msg.length > 0) { %>
         <div class="flash flash-error">❌ <%= error_msg[0] %></div>
       <% } %>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-header"><h3>Yêu Cầu Rút Tiền CTV</h3></div>
+        <div class="admin-card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#ID</th>
+                  <th>CTV</th>
+                  <th>Số Tiền</th>
+                  <th>Ngân Hàng</th>
+                  <th>Số TK</th>
+                  <th>Chủ TK</th>
+                  <th>Trạng Thái</th>
+                  <th>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (withdrawals.length > 0) { %>
+                  <% withdrawals.forEach(w => { const bank = parseBankInfo(w.bank_info); %>
+                    <tr>
+                      <td><strong>#<%= w.id %></strong></td>
+                      <td><%= w.username || ('CTV #' + w.ctv_id) %></td>
+                      <td style="font-weight:900;"><%= money(w.amount) %></td>
+                      <td><%= bank.bank_name || '-' %></td>
+                      <td><%= bank.bank_number || '-' %></td>
+                      <td><%= bank.bank_holder || '-' %></td>
+                      <td>
+                        <span class="status-badge <%= w.status === 'approved' ? 'success' : w.status === 'pending' ? 'pending' : 'failed' %>">
+                          <%= w.status === 'approved' ? 'Đã duyệt' : w.status === 'pending' ? 'Chờ duyệt' : 'Đã từ chối' %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if (w.status === 'pending') { %>
+                          <button class="btn btn-primary btn-sm" onclick="approveWithdrawal(<%= w.id %>)">Duyệt</button>
+                          <button class="btn btn-outline btn-sm" onclick="rejectWithdrawal(<%= w.id %>)" style="color:var(--primary);border-color:var(--primary);">Từ chối</button>
+                        <% } else { %>
+                          <span style="font-size:12px;color:var(--text-muted);">Đã xử lý</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có yêu cầu rút tiền</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       <div class="admin-card" style="margin-bottom:18px;">
         <div class="admin-card-body" style="display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;">
@@ -204,56 +255,6 @@
         </div>
       </div>
 
-      <div class="admin-card">
-        <div class="admin-card-header"><h3>Yêu Cầu Rút Tiền CTV</h3></div>
-        <div class="admin-card-body" style="padding:0;">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>#ID</th>
-                  <th>CTV</th>
-                  <th>Số Tiền</th>
-                  <th>Ngân Hàng</th>
-                  <th>Số TK</th>
-                  <th>Chủ TK</th>
-                  <th>Trạng Thái</th>
-                  <th>Hành Động</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (withdrawals.length > 0) { %>
-                  <% withdrawals.forEach(w => { const bank = parseBankInfo(w.bank_info); %>
-                    <tr>
-                      <td><strong>#<%= w.id %></strong></td>
-                      <td><%= w.username || ('CTV #' + w.ctv_id) %></td>
-                      <td style="font-weight:900;"><%= money(w.amount) %></td>
-                      <td><%= bank.bank_name || '-' %></td>
-                      <td><%= bank.bank_number || '-' %></td>
-                      <td><%= bank.bank_holder || '-' %></td>
-                      <td>
-                        <span class="status-badge <%= w.status === 'approved' ? 'success' : w.status === 'pending' ? 'pending' : 'failed' %>">
-                          <%= w.status === 'approved' ? 'Đã duyệt' : w.status === 'pending' ? 'Chờ duyệt' : 'Đã từ chối' %>
-                        </span>
-                      </td>
-                      <td>
-                        <% if (w.status === 'pending') { %>
-                          <button class="btn btn-primary btn-sm" onclick="approveWithdrawal(<%= w.id %>)">Duyệt</button>
-                          <button class="btn btn-outline btn-sm" onclick="rejectWithdrawal(<%= w.id %>)" style="color:var(--primary);border-color:var(--primary);">Từ chối</button>
-                        <% } else { %>
-                          <span style="font-size:12px;color:var(--text-muted);">Đã xử lý</span>
-                        <% } %>
-                      </td>
-                    </tr>
-                  <% }) %>
-                <% } else { %>
-                  <tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-muted);">Chưa có yêu cầu rút tiền</td></tr>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>

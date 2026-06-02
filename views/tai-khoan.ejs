@@ -192,7 +192,7 @@ async function copyCtvLink() {
       <div class="admin-card" style="margin-bottom:18px;">
         <div class="admin-card-header"><h3>Đăng acc CTV</h3></div>
         <div class="admin-card-body">
-          <form action="/ctv/dang-acc" method="POST" enctype="multipart/form-data" class="admin-form">
+          <form action="/ctv/dang-acc" method="POST" enctype="multipart/form-data" class="admin-form" id="ctvAccForm">
             <div class="form-grid">
               <div class="form-group">
                 <label>Game</label>
@@ -555,10 +555,14 @@ function showTab(name, btn) {
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.hash === '#ctv') showTab('ctv');
 });
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#ctv') showTab('ctv');
+});
+const ctvAccForm = document.getElementById('ctvAccForm');
 const ctvImageInput = document.getElementById('ctvImageInput');
 const ctvImagePreview = document.getElementById('ctvImagePreview');
+let selectedCtvImages = [];
 if (ctvImageInput && ctvImagePreview) {
-  let selectedCtvImages = [];
   const renderCtvImages = files => {
     ctvImagePreview.innerHTML = '';
     if (!files.length) {
@@ -575,10 +579,12 @@ if (ctvImageInput && ctvImagePreview) {
     ctvImagePreview.style.display = 'flex';
   };
   const setCtvFiles = files => {
-    const transfer = new DataTransfer();
     selectedCtvImages = files.slice(0, 8);
-    selectedCtvImages.forEach(file => transfer.items.add(file));
-    ctvImageInput.files = transfer.files;
+    try {
+      const transfer = new DataTransfer();
+      selectedCtvImages.forEach(file => transfer.items.add(file));
+      ctvImageInput.files = transfer.files;
+    } catch (_) {}
     renderCtvImages(selectedCtvImages);
   };
   ctvImageInput.addEventListener('change', () => {
@@ -594,6 +600,38 @@ if (ctvImageInput && ctvImagePreview) {
     if (!file) return;
     const namedFile = new File([file], 'ctv-paste-' + Date.now() + '.png', { type: file.type || 'image/png' });
     setCtvFiles(selectedCtvImages.concat(namedFile));
+  });
+}
+if (ctvAccForm) {
+  ctvAccForm.addEventListener('submit', async event => {
+    if (!selectedCtvImages.length) return;
+    event.preventDefault();
+
+    const submitBtn = ctvAccForm.querySelector('button[type="submit"]');
+    const oldText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đăng...';
+    }
+
+    const formData = new FormData(ctvAccForm);
+    formData.delete('images');
+    selectedCtvImages.forEach(file => formData.append('images', file, file.name || 'ctv-acc.png'));
+
+    try {
+      await fetch(ctvAccForm.action, {
+        method: ctvAccForm.method || 'POST',
+        body: formData
+      });
+      window.location.assign('/tai-khoan#ctv');
+    } catch (_) {
+      ctvAccForm.submit();
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = oldText;
+      }
+    }
   });
 }
 function toggleAcc(btn, user, pass, info) {

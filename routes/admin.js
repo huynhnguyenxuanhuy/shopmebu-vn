@@ -27,6 +27,11 @@ const path      = require('path');
 const fs        = require('fs');
 const bcrypt    = require('bcryptjs');
 const localStore = require('../utils/localStore');
+const {
+  ensureTopDepositorsSchema,
+  upsertTopDepositor,
+  refreshTopDepositorRanks
+} = require('../utils/topDepositors');
 
 // Multer for acc images
 const storage = multer.diskStorage({
@@ -151,6 +156,13 @@ function setAdminSession(req, user) {
     balance: Number(user.balance || 0),
     avatar: user.avatar || null
   };
+}
+
+function redirectAfterSessionSave(req, res, target) {
+  req.session.save(err => {
+    if (err) console.error('Lỗi lưu session admin:', err);
+    res.redirect(target);
+  });
 }
 
 function safeAdminReturn(returnUrl) {
@@ -284,7 +296,7 @@ router.post('/login', async (req, res) => {
     await db.query('UPDATE users SET updated_at=NOW() WHERE id=?', [user.id]);
     setAdminSession(req, user);
     req.flash('success', `Chào mừng ${user.username} quay lại Admin Panel.`);
-    return res.redirect(redirectTo);
+    return redirectAfterSessionSave(req, res, redirectTo);
   } catch (err) {
     const users = await localStore.readUsers();
     const key = username.trim().toLowerCase();
@@ -298,7 +310,7 @@ router.post('/login', async (req, res) => {
 
     setAdminSession(req, user);
     req.flash('success', `Chào mừng ${user.username} quay lại Admin Panel.`);
-    return res.redirect(redirectTo);
+    return redirectAfterSessionSave(req, res, redirectTo);
   }
 });
 
@@ -1233,6 +1245,7 @@ router.get('/orders', async (req, res) => {
 async function resetTopDepositors(req, res) {
   const period = new Date().toISOString().slice(0, 7);
   try {
+    await ensureTopDepositorsSchema(db);
     await db.query('DELETE FROM top_depositors WHERE period=?', [period]);
     req.flash('success', 'Đã reset Top Nạp tháng này về 0.');
   } catch (_) {
@@ -1296,6 +1309,7 @@ router.post('/payments/xu-ly', async (req, res) => {
 
   let conn;
   try {
+    await ensureTopDepositorsSchema(db);
     conn = await db.getConnection();
     await conn.beginTransaction();
     const [[log]] = await conn.query('SELECT * FROM payment_logs WHERE id=?', [log_id]);
@@ -1306,8 +1320,7 @@ router.post('/payments/xu-ly', async (req, res) => {
     if (!user) { await conn.rollback(); return res.json({ success: false, message: 'User không tồn tại!' }); }
 
     const before = Number(user.balance);
-    const bonus  = Math.floor(amt * 0.10);
-    const total  = amt + bonus;
+    const total  = amt;
     const after  = before + total;
 
     await conn.query('UPDATE users SET balance=? WHERE id=?', [after, user_id]);
@@ -1316,27 +1329,18 @@ router.post('/payments/xu-ly', async (req, res) => {
       VALUES (?, 'deposit', ?, ?, ?, 'manual', ?, ?, 'success')
     `, [user_id, total, before, after, 'manual', log.ref_code || '', log.content || '']);
     const period = new Date().toISOString().slice(0, 7);
-    await conn.query(`
-      INSERT INTO top_depositors (user_id, period, total, count)
-      VALUES (?, ?, ?, 1)
-      ON DUPLICATE KEY UPDATE total=total+?, count=count+1
-    `, [user_id, period, total, total]);
-    await conn.query('SET @rank = 0');
-    await conn.query(
-      'UPDATE top_depositors SET rank = (@rank := @rank + 1) WHERE period=? ORDER BY total DESC',
-      [period]
-    );
+    await upsertTopDepositor(conn, user_id, period, total);
+    await refreshTopDepositorRanks(conn, period);
     await conn.query('UPDATE payment_logs SET is_processed=1, matched_user=? WHERE id=?', [user_id, log_id]);
 
     await conn.commit();
-    return res.json({ success: true, message: `✅ Đã cộng ${total.toLocaleString('vi-VN')}đ (+${bonus.toLocaleString()}đ bonus) cho user #${user_id}` });
+    return res.json({ success: true, message: `✅ Đã cộng ${total.toLocaleString('vi-VN')}đ cho user #${user_id}` });
   } catch (err) {
     if (conn) await conn.rollback();
-    const bonus = Math.floor(amt * 0.10);
-    const total = amt + bonus;
+    const total = amt;
     const result = await localStore.adjustBalance(user_id, total, 'Admin xử lý nạp thủ công');
     if (!result) return res.json({ success: false, message: 'User không tồn tại!' });
-    return res.json({ success: true, message: `✅ Đã cộng ${total.toLocaleString('vi-VN')}đ (+${bonus.toLocaleString()}đ bonus) cho user #${user_id} (local)` });
+    return res.json({ success: true, message: `✅ Đã cộng ${total.toLocaleString('vi-VN')}đ cho user #${user_id} (local)` });
   } finally {
     if (conn) conn.release();
   }

@@ -376,6 +376,10 @@ function buyAcc(accId) {
         const balEl = document.getElementById('headerBalance');
         if (balEl) balEl.textContent = Number(data.new_balance).toLocaleString('vi-VN') + 'đ';
       } else {
+        if (data.redirect && data.redirect.includes('/dang-nhap')) {
+          window.location.href = data.redirect;
+          return;
+        }
         document.getElementById('buyModalBody').innerHTML = `
           <div style="text-align:center">
             <i class="fas fa-times-circle" style="color:#e74c3c;font-size:3rem"></i>

@@ -59,7 +59,7 @@
       </a>
 
       <!-- NOTIFICATION BELL -->
-      <a href="/thong-bao" class="icon-btn" title="Thông báo">
+      <a href="/thong-bao" class="icon-btn header-notify-btn" title="Thông báo">
         🔔
         <% if (typeof notifCount !== 'undefined' && notifCount > 0) { %>
           <span class="badge"><%= notifCount %></span>
@@ -107,7 +107,7 @@
         </div>
       <% } else { %>
         <!-- Chưa đăng nhập -->
-        <a href="/dang-nhap" class="icon-btn" title="Đăng nhập / Đăng ký" style="border-radius:24px;padding:0 14px;width:auto;gap:6px;font-size:13px;font-weight:600;">
+        <a href="/dang-nhap" class="icon-btn header-login-btn" title="Đăng nhập / Đăng ký" style="border-radius:24px;padding:0 14px;width:auto;gap:6px;font-size:13px;font-weight:600;">
           👤 Đăng nhập
         </a>
       <% } %>
@@ -221,6 +221,9 @@
       <div class="mu-actions">
         <a href="/nap-tien" class="mu-btn">💳 Nạp tiền</a>
         <a href="/tai-khoan" class="mu-btn">👤 Tài khoản</a>
+        <% if (user.role === 'staff') { %>
+          <a href="/tai-khoan#ctv" class="mu-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;">🤝 Đăng acc CTV</a>
+        <% } %>
       </div>
     </div>
     <% } else { %>
@@ -241,6 +244,9 @@
       <% if (typeof user !== 'undefined' && user) { %>
         <% if (user.role === 'admin' || user.role === 'superadmin') { %>
           <a href="/admin" style="color:#f39c12;">⚙️ Admin Panel</a>
+        <% } %>
+        <% if (user.role === 'staff') { %>
+          <a href="/tai-khoan#ctv" style="color:#16a34a;font-weight:800;">🤝 Khu CTV / Đăng acc</a>
         <% } %>
         <a href="/thong-bao">🔔 Thông báo</a>
         <a href="/lich-su-mua">🛒 Lịch sử mua hàng</a>
