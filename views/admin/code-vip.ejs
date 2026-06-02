@@ -30,7 +30,7 @@
       <div class="admin-card" style="margin-bottom:20px;">
         <div class="admin-card-header"><h3>Thêm Code VIP</h3></div>
         <div class="admin-card-body">
-          <form action="/admin/code-vip/them" method="POST" class="admin-form">
+          <form action="/admin/code-vip/them" method="POST" enctype="multipart/form-data" class="admin-form">
             <div class="form-grid">
               <div class="form-group">
                 <label>Code</label>
@@ -42,11 +42,16 @@
               </div>
               <div class="form-group">
                 <label>Tiêu đề</label>
-                <input type="text" name="title" placeholder="VD: Code tri ân, code web">
+                <input type="text" name="title" placeholder="VD: Code tri ân, code web" required>
               </div>
               <div class="form-group">
                 <label>Chi tiết</label>
                 <textarea name="acc_info" rows="3" placeholder="VD: combo 5 code tổng 25 lệnh hảo kiệt, 10 lệnh chiêm tinh, 3000 knb"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Ảnh Code VIP</label>
+                <input type="file" name="images" id="codeVipImages" accept="image/*" multiple>
+                <div id="codeVipPreview" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
               </div>
             </div>
             <button type="submit" class="btn btn-primary">✅ Đăng Code VIP</button>
@@ -94,5 +99,35 @@
     </div>
   </div>
 </div>
+<script>
+const codeVipImages = document.getElementById('codeVipImages');
+const codeVipPreview = document.getElementById('codeVipPreview');
+if (codeVipImages && codeVipPreview) {
+  let selectedCodeVipImages = [];
+  const renderCodeVipPreview = () => {
+    codeVipPreview.innerHTML = '';
+    if (!selectedCodeVipImages.length) {
+      codeVipPreview.style.display = 'none';
+      return;
+    }
+    selectedCodeVipImages.forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.alt = file.name || 'Ảnh code';
+      img.style.cssText = 'width:120px;height:82px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+      codeVipPreview.appendChild(img);
+    });
+    codeVipPreview.style.display = 'flex';
+  };
+  codeVipImages.addEventListener('change', () => {
+    const files = Array.from(codeVipImages.files || []);
+    selectedCodeVipImages = selectedCodeVipImages.concat(files).slice(0, 8);
+    const transfer = new DataTransfer();
+    selectedCodeVipImages.forEach(file => transfer.items.add(file));
+    codeVipImages.files = transfer.files;
+    renderCodeVipPreview();
+  });
+}
+</script>
 </body>
 </html>

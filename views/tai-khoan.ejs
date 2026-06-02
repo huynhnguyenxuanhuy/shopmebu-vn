@@ -265,7 +265,8 @@ async function copyCtvLink() {
                   <% } %>
                 </div>
                 <div class="ctv-acc-main">
-                  <div class="ctv-acc-title">#<%= acc.id %> - <%= acc.title || acc.type_name || 'Acc đang bán' %></div>
+                  <div class="ctv-acc-title"><%= acc.title || acc.type_name || 'Acc đang bán' %></div>
+                  <div class="ctv-acc-code">Acc #<%= acc.id %></div>
                   <div class="ctv-acc-meta"><%= acc.game_name || acc.game_slug || 'Game' %><% if (acc.type_name) { %> · <%= acc.type_name %><% } %> · <%= acc.created_at ? new Date(acc.created_at).toLocaleString('vi-VN') : '—' %></div>
                 </div>
                 <div class="ctv-acc-price"><%= Number(acc.price || 0).toLocaleString('vi-VN') %>đ</div>
@@ -511,6 +512,7 @@ async function copyCtvLink() {
 }
 .ctv-acc-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .ctv-acc-title { color: #fff; font-weight: 800; font-size: 0.9rem; overflow-wrap: anywhere; }
+.ctv-acc-code { color: #777; font-size: 0.75rem; margin-top: 2px; }
 .ctv-acc-meta { color: #888; font-size: 0.78rem; margin-top: 3px; }
 .ctv-acc-price { color: var(--accent); font-weight: 900; white-space: nowrap; }
 .ctv-delete-btn {
@@ -609,6 +611,9 @@ function toggleAcc(btn, user, pass, info) {
     </div>
     ${info ? `<div class="cred-row"><label>Thông tin:</label><span style="color:#ccc;font-size:0.82rem">${info}</span></div>` : ''}
     <p style="color:#888;font-size:0.78rem;margin-top:10px"><i class="fas fa-shield-alt"></i> Đổi mật khẩu ngay sau khi nhận acc!</p>
+    <a href="https://id.onlive.vn/bao-mat-tai-khoan?tab=password" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#111;color:#fff;text-decoration:none;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:0.85rem;font-weight:800;">
+      <i class="fas fa-key"></i> Đổi mật khẩu Onlive/VPlay
+    </a>
   `;
 }
 document.getElementById('accModal')?.addEventListener('click', e => {

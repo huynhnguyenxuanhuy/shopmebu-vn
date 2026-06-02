@@ -187,6 +187,13 @@ async function ensureCtvSchema() {
   } catch (_) {}
 
   try {
+    const [imagesCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'images'");
+    if (imagesCol.length && !/text/i.test(String(imagesCol[0].Type || ''))) {
+      await db.query('ALTER TABLE accounts MODIFY COLUMN images TEXT DEFAULT NULL');
+    }
+  } catch (_) {}
+
+  try {
     await db.query(`
       CREATE TABLE IF NOT EXISTS ctv_withdrawals (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -510,12 +517,21 @@ router.get('/code-vip', async (req, res) => {
   });
 });
 
-router.post('/code-vip/them', async (req, res) => {
+router.post('/code-vip/them', upload.fields([
+  { name: 'images', maxCount: 8 },
+  { name: 'image', maxCount: 8 }
+]), async (req, res) => {
   const { code, title, price, acc_info } = req.body;
   const cleanCode = String(code || '').trim();
+  const cleanTitle = String(title || '').trim();
   const cleanPrice = Number(price || 0);
-  if (!cleanCode || cleanPrice <= 0) {
-    req.flash('error', 'Vui lòng nhập code và giá hợp lệ.');
+  const uploadedFiles = [
+    ...((req.files && req.files.images) || []),
+    ...((req.files && req.files.image) || [])
+  ];
+  const imageUrl = uploadedFiles.map(file => '/uploads/acc/' + file.filename).join(',') || null;
+  if (!cleanCode || !cleanTitle || cleanPrice <= 0) {
+    req.flash('error', 'Vui lòng nhập code, tiêu đề và giá hợp lệ.');
     return res.redirect('/admin/code-vip');
   }
 
@@ -530,15 +546,16 @@ router.post('/code-vip/them', async (req, res) => {
     await db.query(`
       INSERT INTO accounts
         (category_id, acc_type_id, acc_username, acc_password, acc_info, title, price, rank, server, images, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'Code VIP', 'Code VIP', NULL, 'available')
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Code VIP', 'Code VIP', ?, 'available')
     `, [
       categoryRow.id,
       accTypeId,
       cleanCode,
       'CODEVIP',
       acc_info || 'Code VIP - nhận code sau khi mua.',
-      title || 'Code VIP',
-      cleanPrice
+      cleanTitle,
+      cleanPrice,
+      imageUrl
     ]);
     req.flash('success', 'Đã đăng Code VIP.');
   } catch (err) {
@@ -549,10 +566,11 @@ router.post('/code-vip/them', async (req, res) => {
       acc_username: cleanCode,
       acc_password: 'CODEVIP',
       acc_info: acc_info || 'Code VIP - nhận code sau khi mua.',
-      title: title || 'Code VIP',
+      title: cleanTitle,
       price: cleanPrice,
       rank_name: 'Code VIP',
-      server: 'Code VIP'
+      server: 'Code VIP',
+      image_url: imageUrl
     });
     req.flash('success', 'Đã đăng Code VIP vào dữ liệu local.');
   }

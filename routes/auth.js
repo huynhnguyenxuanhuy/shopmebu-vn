@@ -90,6 +90,11 @@ async function ensureCtvSchema() {
   const [ctvCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'ctv_id'");
   if (!ctvCol.length) await db.query('ALTER TABLE accounts ADD COLUMN ctv_id INT DEFAULT NULL');
 
+  const [imagesCol] = await db.query("SHOW COLUMNS FROM accounts LIKE 'images'");
+  if (imagesCol.length && !/text/i.test(String(imagesCol[0].Type || ''))) {
+    await db.query('ALTER TABLE accounts MODIFY COLUMN images TEXT DEFAULT NULL');
+  }
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS ctv_withdrawals (
       id INT AUTO_INCREMENT PRIMARY KEY,

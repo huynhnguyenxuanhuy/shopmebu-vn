@@ -11,6 +11,15 @@
     'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592'
   ];
   const gameFallbackThumb = id => gameFallbackThumbs[Number(id || 0) % gameFallbackThumbs.length];
+  const accDisplayTitle = acc => {
+    const title = String(acc.title || '').trim();
+    if (title) return title;
+    const rank = String(acc.rank || acc.rank_name || '').trim();
+    if (rank) return rank;
+    const info = String(acc.acc_info || '').trim();
+    if (info) return info;
+    return 'Acc đang bán';
+  };
 %>
 
 <div class="game-page">
@@ -97,8 +106,8 @@
           <% } %>
         </div>
         <div class="acc-info">
-          <div class="acc-id">#<%= acc.id %></div>
-          <h3 class="acc-rank"><%= acc.title || acc.rank || 'Chưa xác định' %></h3>
+          <h3 class="acc-rank"><%= accDisplayTitle(acc) %></h3>
+          <div class="acc-id">Acc #<%= acc.id %></div>
           <% if (acc.acc_info) { %>
             <div class="acc-desc"><%= acc.acc_info %></div>
           <% } %>

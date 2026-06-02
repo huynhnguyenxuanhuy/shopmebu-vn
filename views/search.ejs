@@ -11,6 +11,15 @@
     'https://gianghokyngo.vplay.vn/home/img/img-slide.png'
   ];
   const searchFallbackThumb = id => searchFallbackThumbs[Number(id || 0) % searchFallbackThumbs.length];
+  const accDisplayTitle = acc => {
+    const title = String(acc.title || '').trim();
+    if (title) return title;
+    const rank = String(acc.rank || acc.rank_name || '').trim();
+    if (rank) return rank;
+    const info = String(acc.acc_info || '').trim();
+    if (info) return info;
+    return 'Acc đang bán';
+  };
 %>
 <div class="search-page">
   <div class="container">
@@ -38,7 +47,8 @@
         </div>
         <div class="acc-info">
           <div class="acc-game-name"><%= acc.game_name %></div>
-          <h3 class="acc-rank"><%= acc.title || acc.rank || 'N/A' %></h3>
+          <h3 class="acc-rank"><%= accDisplayTitle(acc) %></h3>
+          <div class="acc-id">Acc #<%= acc.id %></div>
           <% if (acc.acc_info) { %>
             <div class="acc-desc"><%= acc.acc_info %></div>
           <% } %>
@@ -103,6 +113,7 @@
 .acc-info { padding: 12px; }
 .acc-game-name { color: var(--primary); font-size: 0.72rem; font-weight: 600; margin-bottom: 3px; }
 .acc-rank { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.acc-id { color: #777; font-size: 0.72rem; margin: -3px 0 7px; }
 .acc-desc {
   color: #aaa; font-size: 0.78rem; line-height: 1.45;
   margin: -2px 0 8px; display: -webkit-box;

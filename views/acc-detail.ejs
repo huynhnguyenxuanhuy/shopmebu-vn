@@ -11,6 +11,9 @@
     'https://play-lh.googleusercontent.com/i6WceP8bKoQcOUv_guR3DlwxkddsKzIiYl-fw7BTRRxmVsDOyBw_XjcY1OFHloSXtaU=w1052-h592'
   ];
   const detailFallbackThumb = id => detailFallbackThumbs[Number(id || 0) % detailFallbackThumbs.length];
+  const detailTitle = String(acc.title || acc.rank || acc.acc_info || 'Acc đang bán').trim();
+  const galleryImages = images.length > 0 ? images : [detailFallbackThumb(acc.id)];
+  const galleryImagesJson = JSON.stringify(galleryImages).replace(/</g, '\\u003c');
 %>
 
 <div class="detail-page">
@@ -22,7 +25,7 @@
       <i class="fas fa-chevron-right"></i>
       <a href="/game/<%= category.slug %>"><%= category.icon %> <%= category.name %></a>
       <i class="fas fa-chevron-right"></i>
-      <span>Acc #<%= acc.id %></span>
+      <span><%= detailTitle %></span>
     </nav>
 
     <div class="detail-grid">
@@ -30,18 +33,18 @@
       <%# ── LEFT: IMAGE GALLERY ── %>
       <div class="detail-gallery">
         <div class="main-img-wrap">
-          <% if (images.length > 0) { %>
-            <img src="<%= images[0] %>" alt="Acc #<%= acc.id %>" id="mainImg" class="main-img" onclick="openImageModal(this.src)" onerror="this.src='<%= detailFallbackThumb(acc.id) %>'">
-          <% } else { %>
-            <img src="<%= detailFallbackThumb(acc.id) %>" alt="Acc #<%= acc.id %>" id="mainImg" class="main-img" onclick="openImageModal(this.src)">
-          <% } %>
+          <img src="<%= galleryImages[0] %>" alt="<%= detailTitle %>" id="mainImg" class="main-img" onclick="openImageModal()" onerror="this.src='<%= detailFallbackThumb(acc.id) %>'">
           <span class="detail-badge"><%= acc.status === 'available' ? '🟢 Còn hàng' : '🔴 Hết hàng' %></span>
+          <% if (galleryImages.length > 1) { %>
+            <button type="button" class="gallery-nav gallery-prev" onclick="event.stopPropagation();changeMainImage(-1)" aria-label="Ảnh trước"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="gallery-nav gallery-next" onclick="event.stopPropagation();changeMainImage(1)" aria-label="Ảnh sau"><i class="fas fa-chevron-right"></i></button>
+          <% } %>
         </div>
-        <% if (images.length > 1) { %>
+        <% if (galleryImages.length > 1) { %>
         <div class="thumb-list">
-          <% images.forEach((img, i) => { %>
+          <% galleryImages.forEach((img, i) => { %>
           <img src="<%= img %>" alt="Ảnh <%= i+1 %>" class="thumb-item <%= i === 0 ? 'active' : '' %>"
-               onclick="setMain('<%= img %>', this)" ondblclick="openImageModal('<%= img %>')">
+               onclick="setMainIndex(<%= i %>)" ondblclick="openImageModal(<%= i %>)">
           <% }) %>
         </div>
         <% } %>
@@ -50,7 +53,7 @@
       <%# ── RIGHT: INFO ── %>
       <div class="detail-info">
         <div class="detail-id">Acc #<%= acc.id %></div>
-        <h1 class="detail-rank"><%= acc.title || acc.rank || 'Chưa xác định' %></h1>
+        <h1 class="detail-rank"><%= detailTitle %></h1>
         <% if (acc.acc_info) { %><p class="detail-title-text"><%= acc.acc_info %></p><% } %>
 
         <%# ── THÔNG SỐ ── %>
@@ -151,6 +154,10 @@
             <i class="fab fa-facebook"></i> Facebook
           </a>
         </div>
+        <a href="https://id.onlive.vn/bao-mat-tai-khoan?tab=password" target="_blank" rel="noopener" class="password-change-link">
+          <i class="fas fa-key"></i>
+          <span>Đổi mật khẩu tài khoản Onlive/VPlay</span>
+        </a>
       </div>
 
     </div><%# end detail-grid %>
@@ -186,7 +193,11 @@
 
 <div class="image-modal" id="imageModal" onclick="closeImageModal()">
   <button type="button" class="image-modal-close" aria-label="Đóng ảnh">×</button>
-  <img src="" alt="Ảnh acc full" id="imageModalImg">
+  <% if (galleryImages.length > 1) { %>
+    <button type="button" class="image-modal-nav image-modal-prev" onclick="event.stopPropagation();changeModalImage(-1)" aria-label="Ảnh trước"><i class="fas fa-chevron-left"></i></button>
+    <button type="button" class="image-modal-nav image-modal-next" onclick="event.stopPropagation();changeModalImage(1)" aria-label="Ảnh sau"><i class="fas fa-chevron-right"></i></button>
+  <% } %>
+  <img src="" alt="Ảnh acc full" id="imageModalImg" onclick="event.stopPropagation()">
 </div>
 
 <%# ── BUY RESULT MODAL ── %>
@@ -211,7 +222,7 @@
 @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
 
 .main-img-wrap { position: relative; border-radius: 12px; overflow: hidden; }
-.main-img { width: 100%; height: 360px; object-fit: cover; display: block; cursor: zoom-in; }
+.main-img { width: 100%; height: 360px; object-fit: cover; display: block; cursor: zoom-in; touch-action: pan-y; }
 .detail-badge {
   position: absolute; top: 12px; left: 12px;
   background: rgba(0,0,0,0.7);
@@ -224,6 +235,15 @@
   border: 2px solid transparent; transition: border-color 0.2s;
 }
 .thumb-item.active, .thumb-item:hover { border-color: var(--primary); }
+.gallery-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 38px; height: 38px; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.58); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.gallery-prev { left: 12px; }
+.gallery-next { right: 12px; }
+.gallery-nav:hover { background: rgba(0,0,0,.78); }
 
 .detail-id { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
 .detail-rank { font-size: 1.8rem; color: var(--text) !important; margin-bottom: 4px; }
@@ -286,7 +306,7 @@
 .auto-note strong { display: block; color: #2ecc71; margin-bottom: 2px; }
 .auto-note span { color: var(--text-muted); font-size: 0.82rem; }
 
-.support-links { display: flex; gap: 10px; }
+.support-links { display: flex; gap: 10px; flex-wrap: wrap; }
 .supp-btn {
   flex: 1; text-align: center; text-decoration: none;
   padding: 10px; border-radius: 8px;
@@ -296,6 +316,14 @@
 .supp-btn:hover { opacity: 0.85; }
 .supp-btn.zalo { background: #0068FF; }
 .supp-btn.fb   { background: #1877F2; }
+.password-change-link {
+  margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 11px 12px; border-radius: 8px;
+  background: #111; color: #fff; text-decoration: none;
+  font-size: 0.9rem; font-weight: 800;
+}
+.password-change-link:hover { opacity: .88; }
 
 .related-section { margin-top: 20px; }
 .acc-grid {
@@ -361,7 +389,7 @@
 .image-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,.9);
   display: none; align-items: center; justify-content: center;
-  z-index: 10050; padding: 18px;
+  z-index: 10050; padding: 18px; touch-action: pan-y;
 }
 .image-modal.active { display: flex; }
 .image-modal img { max-width: 96vw; max-height: 92vh; object-fit: contain; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.45); }
@@ -370,25 +398,51 @@
   border-radius: 50%; border: 0; background: #fff; color: #111;
   font-size: 28px; line-height: 1; cursor: pointer; font-weight: 700;
 }
+.image-modal-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 46px; height: 46px; border-radius: 50%; border: 0;
+  background: rgba(255,255,255,.92); color: #111; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.image-modal-prev { left: 18px; }
+.image-modal-next { right: 18px; }
 @media (max-width: 600px) {
   .main-img { height: 260px; }
   .detail-specs { grid-template-columns: 1fr; }
   .price-value { font-size: 1.55rem; }
+  .image-modal-nav { width: 40px; height: 40px; }
 }
 </style>
 
 <script>
-function setMain(src, el) {
-  document.getElementById('mainImg').src = src;
+const galleryImages = <%- galleryImagesJson %>;
+let currentImageIndex = 0;
+let modalImageIndex = 0;
+
+function setMainIndex(index) {
+  currentImageIndex = (index + galleryImages.length) % galleryImages.length;
+  document.getElementById('mainImg').src = galleryImages[currentImageIndex];
   document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  const activeThumb = document.querySelectorAll('.thumb-item')[currentImageIndex];
+  if (activeThumb) activeThumb.classList.add('active');
 }
 
-function openImageModal(src) {
+function changeMainImage(step) {
+  setMainIndex(currentImageIndex + step);
+}
+
+function openImageModal(index = currentImageIndex) {
+  modalImageIndex = (index + galleryImages.length) % galleryImages.length;
   const modal = document.getElementById('imageModal');
-  document.getElementById('imageModalImg').src = src;
+  document.getElementById('imageModalImg').src = galleryImages[modalImageIndex];
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
+}
+
+function changeModalImage(step) {
+  modalImageIndex = (modalImageIndex + step + galleryImages.length) % galleryImages.length;
+  document.getElementById('imageModalImg').src = galleryImages[modalImageIndex];
 }
 
 function closeImageModal() {
@@ -397,6 +451,49 @@ function closeImageModal() {
   document.getElementById('imageModalImg').src = '';
   document.body.style.overflow = '';
 }
+
+function bindImageSwipe(el, onSwipe) {
+  if (!el || galleryImages.length <= 1) return;
+  let startX = 0;
+  let startY = 0;
+  let moved = false;
+
+  el.addEventListener('touchstart', event => {
+    const touch = event.touches && event.touches[0];
+    if (!touch) return;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    moved = false;
+  }, { passive: true });
+
+  el.addEventListener('touchmove', event => {
+    const touch = event.touches && event.touches[0];
+    if (!touch) return;
+    if (Math.abs(touch.clientX - startX) > 10) moved = true;
+  }, { passive: true });
+
+  el.addEventListener('touchend', event => {
+    const touch = event.changedTouches && event.changedTouches[0];
+    if (!touch || !moved) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy)) return;
+    onSwipe(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  bindImageSwipe(document.querySelector('.main-img-wrap'), changeMainImage);
+  bindImageSwipe(document.getElementById('imageModal'), changeModalImage);
+});
+
+document.addEventListener('keydown', event => {
+  const modal = document.getElementById('imageModal');
+  if (!modal || !modal.classList.contains('active')) return;
+  if (event.key === 'ArrowLeft') changeModalImage(-1);
+  if (event.key === 'ArrowRight') changeModalImage(1);
+  if (event.key === 'Escape') closeImageModal();
+});
 
 function buyThisAcc() {
   <% if (!user) { %>
@@ -434,6 +531,9 @@ function buyThisAcc() {
           </div>
           ${data.order.acc_info ? `<div class="cred-item"><label>Lưu ý:</label><span style="color:#ccc">${data.order.acc_info}</span></div>` : ''}
           <p style="color:var(--accent);font-weight:700;margin-top:12px">Số dư còn: ${Number(data.new_balance).toLocaleString('vi-VN')}đ</p>
+          <a href="https://id.onlive.vn/bao-mat-tai-khoan?tab=password" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#111;color:#fff;text-decoration:none;border-radius:8px;padding:11px 12px;margin-top:12px;font-size:.9rem;font-weight:800;">
+            <i class="fas fa-key"></i> Đổi mật khẩu Onlive/VPlay
+          </a>
         `;
         btn.innerHTML = '✅ Đã mua thành công';
         btn.className = 'btn-buy-detail sold';
