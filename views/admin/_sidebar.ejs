@@ -1,4 +1,32 @@
 <%# Sidebar dùng chung cho tất cả trang admin %>
+<style>
+  @media (min-width: 769px) {
+    .admin-layout {
+      display: block !important;
+      min-height: 100vh !important;
+    }
+    #adminSidebar.admin-sidebar {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 250px !important;
+      height: 100vh !important;
+      z-index: 180 !important;
+      overflow-y: auto !important;
+      transform: none !important;
+    }
+    .admin-main {
+      margin-left: 250px !important;
+      min-height: 100vh !important;
+    }
+  }
+  @media (max-width: 768px) {
+    .admin-main {
+      margin-left: 0 !important;
+    }
+  }
+</style>
 <!-- Mobile overlay -->
 <div class="admin-sidebar-overlay" id="adminSidebarOverlay" onclick="toggleAdminSidebar()"></div>
 
