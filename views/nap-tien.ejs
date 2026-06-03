@@ -22,7 +22,7 @@
     <%# ── HEADER ── %>
     <div class="nt-header">
       <h1><i class="fas fa-wallet"></i> Nạp Tiền Vào Tài Khoản</h1>
-      <p class="nt-sub">Nạp tự động qua TPBank 24/7 • MoMo chờ admin duyệt</p>
+      <p class="nt-sub">Nạp tự động qua TPBank 24/7</p>
       <div class="nt-balance-box">
         <span>Số dư hiện tại:</span>
         <strong class="balance-display"><%= Number(user.balance).toLocaleString('vi-VN') %>đ</strong>
@@ -35,7 +35,7 @@
       <i class="fas fa-gift"></i>
       <div>
         <strong>🎁 KHUYẾN MÃI: Nạp tiền +<%= bonusPctView %>% cho mỗi giao dịch!</strong>
-        <span>Áp dụng cho MoMo & TPBank • Không giới hạn số lần nạp</span>
+        <span>Áp dụng cho TPBank • Không giới hạn số lần nạp</span>
       </div>
     </div>
     <% } %>
@@ -156,65 +156,12 @@
       </div><%# end bank-cols %>
     </div><%# end qr-result-panel %>
 
-    <%# ── MOMO THỦ CÔNG ── %>
-    <div class="momo-manual-panel">
-      <div class="momo-manual-header">
-        <i class="fas fa-hand-paper"></i>
-        <div>
-          <strong>Nạp thủ công qua MoMo</strong>
-          <span>Admin sẽ duyệt và cộng tiền trong vòng 15–30 phút</span>
-        </div>
-        <span class="manual-badge">Thủ công</span>
-      </div>
-
-      <div class="momo-manual-warn">
-        <i class="fas fa-clock"></i>
-        Chuyển khoản MoMo <strong>không tự động</strong> — số dư sẽ được cộng sau khi admin kiểm tra. Ghi đúng nội dung <strong><%= napCode %></strong> để admin xác nhận nhanh hơn.
-      </div>
-
-      <div class="momo-manual-body">
-        <div class="momo-qr-wrap">
-          <img src="<%= banks.momo.qr_img %>" alt="QR MoMo" class="payment-qr momo-static-qr"
-               onerror="this.style.display='none';document.getElementById('momoFallback').style.display='flex'">
-          <div id="momoFallback" class="qr-fallback momo-qr-fallback" style="display:none;">
-            <div class="qr-brand-line"><span>momo</span><span>VIETQR</span><span>napas 247</span></div>
-            <div class="fake-qr">QR</div>
-            <div class="qr-owner">VÕ PHAN TRUNG HIẾU<br><small>STK: <%= banks.momo.stk %></small></div>
-          </div>
-          <div class="qr-label" style="color:#555;">Quét mã để chuyển tiền</div>
-        </div>
-        <div class="bank-details">
-          <div class="bank-row">
-            <span class="bank-key">Số điện thoại:</span>
-            <span class="bank-val"><%= banks.momo.stk %></span>
-            <button onclick="copyText('<%= banks.momo.stk %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
-          </div>
-          <div class="bank-row">
-            <span class="bank-key">Tên tài khoản:</span>
-            <span class="bank-val"><%= banks.momo.name %></span>
-          </div>
-          <div class="bank-row important">
-            <span class="bank-key">Nội dung CK:</span>
-            <span class="bank-val"><%= napCode %></span>
-            <button onclick="copyText('<%= napCode %>')" class="btn-mini-copy"><i class="fas fa-copy"></i></button>
-          </div>
-          <form action="/nap-tien/momo-bao-da-chuyen" method="GET" class="momo-report-form" onsubmit="return confirm('Gửi yêu cầu nạp MoMo cho admin duyệt?')">
-            <input type="hidden" name="amount" id="momoReportAmount" value="100000">
-            <button type="submit" class="btn-momo-report">
-              <i class="fas fa-paper-plane"></i> Tôi đã chuyển MoMo
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
     <%# ── HƯỚNG DẪN ── %>
     <div class="howto-box">
       <h3><i class="fas fa-list-ol"></i> Hướng Dẫn Nạp Tiền</h3>
       <ol>
         <li><strong style="color:var(--primary)">Nạp tự động (TPBank):</strong> Chọn số tiền → bấm Tiến Hành → quét QR TPBank. Số dư cộng trong <strong>30 giây</strong>.</li>
-        <li><strong style="color:#ae2070">Nạp thủ công (MoMo):</strong> Quét QR MoMo phía dưới, ghi đúng nội dung <strong><%= napCode %></strong>. Admin sẽ duyệt trong 15–30 phút.</li>
-        <li>Tối thiểu 10.000đ cho cả hai phương thức.</li>
+        <li>Tối thiểu 10.000đ cho phương thức TPBank.</li>
         <% if (bonusPctView > 0) { %><li>Bạn nhận thêm <strong>+<%= bonusPctView %>% bonus</strong> trên số tiền nạp</li><% } %>
       </ol>
       <div class="howto-note">
@@ -268,7 +215,11 @@
               <td><%= i + 1 %></td>
               <td><%= new Date(tx.created_at).toLocaleString('vi-VN') %></td>
               <td class="tx-amount">+<%= Number(tx.amount).toLocaleString('vi-VN') %>đ</td>
-              <td><span class="method-badge <%= tx.payment_method %>"><%= tx.payment_method || 'ATM' %></span></td>
+              <%
+                const paymentMethod = String(tx.payment_method || 'ATM');
+                const paymentMethodView = paymentMethod.toLowerCase().includes('momo') ? 'ATM' : paymentMethod;
+              %>
+              <td><span class="method-badge <%= paymentMethodView.toLowerCase() %>"><%= paymentMethodView %></span></td>
               <td class="tx-content"><%= tx.transfer_content || '—' %></td>
               <td>
                 <span class="status-badge <%= tx.status %>">
@@ -571,7 +522,6 @@
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.08);
 }
-.momo-card { border-top: 3px solid #ae2070; }
 .tpbank-card { border-top: 3px solid #dd2a1b; }
 
 .bank-header {
@@ -592,7 +542,6 @@
   font-weight: 900;
   color: #fff;
 }
-.momo-logo { background: linear-gradient(135deg, #ae2070, #d94a9b); }
 .tpbank-logo { background: linear-gradient(135deg, #4b208c, #ff7a00); }
 .bank-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
 
@@ -617,7 +566,6 @@
   gap: 10px;
   color: #2b1630;
 }
-.momo-qr-fallback { display: flex; }
 .qr-brand-line {
   display: flex;
   gap: 10px;
@@ -666,21 +614,6 @@
   font-size: 0.75rem;
 }
 
-.momo-manual-panel {
-  background: #fff8fc;
-  border: 1.5px solid #f0b8d8;
-  border-top: 4px solid #ae2070;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 28px;
-}
-.momo-manual-header {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 14px;
-}
-.momo-manual-header i { font-size: 1.6rem; color: #ae2070; }
-.momo-manual-header strong { display: block; color: #2b0820; font-size: 1.1rem; }
-.momo-manual-header span { font-size: 0.83rem; color: #7a4060; }
 .manual-badge {
   margin-left: auto;
   background: #ae2070;
@@ -691,36 +624,6 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.momo-manual-warn {
-  background: rgba(174,32,112,0.08);
-  border: 1px solid #f0b8d8;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
-  color: #6b2040;
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-.momo-manual-warn i { margin-right: 6px; color: #ae2070; }
-.momo-manual-body {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 20px;
-  align-items: start;
-}
-.momo-qr-wrap { text-align: center; }
-.momo-report-form { margin-top: 14px; }
-.btn-momo-report {
-  width: 100%; border: 0; border-radius: 12px; padding: 12px 16px; cursor: pointer;
-  background: linear-gradient(135deg, #ae2070, #d91b82); color: #fff; font-weight: 900;
-  box-shadow: 0 8px 22px rgba(174,32,112,.22);
-}
-.btn-momo-report:hover { opacity: .9; }
-@media (max-width: 600px) {
-  .momo-manual-body { grid-template-columns: 1fr; }
-  .momo-manual-header { flex-wrap: wrap; }
-}
-
 .howto-box {
   background: var(--card-bg);
   border-radius: 12px;
@@ -797,7 +700,6 @@
   padding: 2px 10px; border-radius: 12px;
   font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
 }
-.method-badge.momo { background: rgba(174,32,112,0.2); color: #e91e8c; }
 .method-badge.tpbank { background: rgba(221,42,27,0.2); color: #ff6b6b; }
 .method-badge.atm { background: rgba(46,204,113,0.2); color: #2ecc71; }
 .status-badge {
@@ -860,9 +762,6 @@ function updateQrAmount() {
   if (bonusEl) bonusEl.textContent = formatMoney(bonusAmount);
   if (receiveEl) receiveEl.textContent = formatMoney(receive);
   if (qrAmountEl) qrAmountEl.textContent = formatMoney(amount);
-  const momoReportAmount = document.getElementById('momoReportAmount');
-  if (momoReportAmount) momoReportAmount.value = amount >= 10000 ? amount : 10000;
-
   document.querySelectorAll('.amount-choice').forEach(btn => {
     btn.classList.toggle('active', Number(btn.dataset.amount) === amount);
   });
