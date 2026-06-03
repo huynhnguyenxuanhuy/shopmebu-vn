@@ -22,8 +22,142 @@
     }
   }
   @media (max-width: 768px) {
+    html,
+    body {
+      overflow-x: hidden !important;
+    }
+    .admin-layout {
+      display: block !important;
+      width: 100% !important;
+      min-height: 100vh !important;
+    }
+    #adminSidebar.admin-sidebar {
+      position: fixed !important;
+      left: -260px !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 250px !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      z-index: 2000 !important;
+      overflow-y: auto !important;
+      transform: none !important;
+      transition: left .25s ease !important;
+      box-shadow: none !important;
+    }
+    #adminSidebar.admin-sidebar.open {
+      left: 0 !important;
+      box-shadow: 4px 0 30px rgba(0,0,0,.4) !important;
+    }
+    #adminSidebarOverlay.admin-sidebar-overlay {
+      display: none !important;
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(0,0,0,.5) !important;
+      z-index: 1999 !important;
+      backdrop-filter: blur(2px) !important;
+    }
+    #adminSidebarOverlay.admin-sidebar-overlay.open {
+      display: block !important;
+    }
     .admin-main {
+      width: 100% !important;
       margin-left: 0 !important;
+      overflow-x: hidden !important;
+    }
+    .admin-topbar {
+      padding: 12px 14px !important;
+      gap: 10px !important;
+      position: sticky !important;
+      top: 0 !important;
+    }
+    .admin-topbar h1 {
+      min-width: 0 !important;
+      font-size: 15px !important;
+      line-height: 1.25 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+    .admin-menu-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      margin-right: 0 !important;
+      border: 0 !important;
+      border-radius: 10px !important;
+      background: var(--primary-light) !important;
+      color: var(--primary) !important;
+      font-size: 20px !important;
+    }
+    .admin-content {
+      padding: 14px 10px !important;
+    }
+    .admin-stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      margin-bottom: 16px !important;
+    }
+    .admin-stat-card,
+    .admin-card {
+      border-radius: 12px !important;
+    }
+    .admin-stat-card {
+      padding: 14px 12px !important;
+    }
+    .admin-stat-value {
+      font-size: 20px !important;
+      word-break: break-word !important;
+    }
+    .admin-card-header {
+      padding: 12px 14px !important;
+      gap: 10px !important;
+      flex-wrap: wrap !important;
+    }
+    .admin-card-header h3 {
+      font-size: 14px !important;
+      line-height: 1.3 !important;
+    }
+    .admin-card-body {
+      padding: 14px !important;
+    }
+    .admin-form .form-row,
+    .admin-form .form-grid,
+    .admin-content div[style*="display:grid"] {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    .admin-card-body form[style*="display:flex"],
+    .admin-card-body div[style*="display:flex"] {
+      flex-wrap: wrap !important;
+    }
+    .search-input,
+    .form-control,
+    .admin-form input,
+    .admin-form select,
+    .admin-form textarea {
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+    .table-wrapper {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .data-table {
+      min-width: 720px !important;
+    }
+    .data-table th,
+    .data-table td {
+      padding: 9px 10px !important;
+      font-size: 11.5px !important;
+      white-space: nowrap !important;
+    }
+    canvas {
+      max-height: 240px !important;
     }
   }
 </style>
